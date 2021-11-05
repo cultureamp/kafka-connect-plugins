@@ -2,6 +2,9 @@ plugins {
     // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
     id("org.jetbrains.kotlin.jvm") version "1.5.0"
 
+    // Add ktlint
+    id("org.jmailen.kotlinter") version "3.6.0"
+
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
 }
