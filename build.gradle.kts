@@ -7,6 +7,9 @@ plugins {
     // Add ktlint
     id("org.jmailen.kotlinter") version "3.6.0"
 
+    // Vulnerable dependency checker
+    id("org.owasp.dependencycheck") version "6.4.1.1"
+
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
 }
@@ -35,4 +38,11 @@ dependencies {
 
     // Use the Kotlin JUnit integration.
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
+}
+
+// A full list of config options can be found here:
+// https://jeremylong.github.io/DependencyCheck/dependency-check-gradle/configuration.html
+dependencyCheck {
+    // anything over a 5.0 is above a 'warning'
+    failBuildOnCVSS = 5.0F
 }
