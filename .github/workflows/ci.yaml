@@ -17,6 +17,8 @@ jobs:
         uses: gradle/wrapper-validation-action@e6e38bacfdf1a337459f332974bb2327a31aaf4b
       - name: Build, test, lint
         run: ./gradlew build
+      - name: Analyse dependencies for vulnerabilities
+        run: ./gradlew dependencyCheckAnalyze
       - uses: actions/upload-artifact@v2
         with:
           name: Upload build artifacts
