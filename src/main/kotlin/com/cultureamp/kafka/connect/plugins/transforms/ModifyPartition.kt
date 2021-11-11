@@ -29,7 +29,7 @@ class ModifyPartition<R : ConnectRecord<R>> : Transformation<R> {
 
     override fun apply(record: R): R {
         if (partitionCount == null) {
-            throw ConnectException("The property `number.partitions` must be set.")
+            throw ConnectException("The property `$NUMBER_OF_PARTITIONS` must be set.")
         } else if (partitionCount!! <= 0) {
             throw ConnectException("Partition count should be greater than 0")
         }
