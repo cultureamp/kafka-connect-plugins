@@ -1,0 +1,18 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: "kafka-connect-plugins"
+  description: "A set of generic plugins for Kafka Connect that complement the built-in transformations, config providers, and connectors."
+  links: # add any links that would be useful here. Dashboards, site urls etc
+    - title: Source
+      url: https://github.com/cultureamp/kafka-connect-plugins
+  tags:
+    - tier-2
+    - camp-platform
+  annotations:
+    github.com/project-slug: cultureamp/kafka-connect-plugins
+    github.com/team-slug: cultureamp/data-services
+spec:
+  type: service
+  lifecycle: production
+  owner: data-services
