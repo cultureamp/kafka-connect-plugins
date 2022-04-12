@@ -81,6 +81,7 @@ class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<
 
         // Add back the unified fields
         val modifiedPayloadSchema = updatedSchemaBuilder
+            .name("com.cultureamp.murmur.slack_integrations")
             .field("account_aggregate_id", Schema.STRING_SCHEMA)
             .field("access_token", Schema.STRING_SCHEMA)
             .field("team_id", Schema.STRING_SCHEMA)
