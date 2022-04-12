@@ -11,19 +11,19 @@ import org.apache.kafka.connect.transforms.Transformation
 import org.apache.kafka.connect.transforms.util.Requirements
 
 class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<R> {
-    val attributesToIgnoreList = arrayListOf("account_aggregate_id", "oauth_response_data.access_token", "oauth_response_data.team_id", "oauth_response_data.team_name", "oauth_response_data.bot.bot_access_token", "oauth_response_data.team.id", "oauth_response_data.team.name")
-    val PURPOSE = "unify legacy slack integration data"
+    private val ignoredAttributes = arrayListOf("account_aggregate_id", "oauth_response_data.access_token", "oauth_response_data.team_id", "oauth_response_data.team_name", "oauth_response_data.bot.bot_access_token", "oauth_response_data.team.id", "oauth_response_data.team.name")
+    private val PURPOSE = "unify legacy slack integration data"
     override fun configure(configs: MutableMap<String, *>?) {}
 
     override fun close() {}
 
-    fun removeIgnoredAttributes(fields: List<Field>, builder: SchemaBuilder, hierarchy: String = ""): SchemaBuilder {
+    private fun removeIgnoredAttributes(fields: List<Field>, builder: SchemaBuilder, hierarchy: String = ""): SchemaBuilder {
         for (field in fields) {
-            if ("$hierarchy${field.name()}" !in attributesToIgnoreList) {
+            if ("$hierarchy${field.name()}" !in ignoredAttributes) {
                 if (field.schema().type().getName() == "struct") {
                     val childSchema = removeIgnoredAttributes(field.schema().fields(), SchemaBuilder.struct(), "$hierarchy${field.name()}.")
                     // Only add child schema if is not empty
-                    if (childSchema.fields().count() > 0) {
+                    if (childSchema.fields().isNotEmpty()) {
                         builder.field(field.name(), childSchema.build())
                     }
                 } else {
@@ -35,8 +35,8 @@ class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<
         return builder
     }
 
-    fun populateValue(originalValues: Struct, updatedValues: Struct): Struct {
-        var newFields = updatedValues.schema().fields()
+    private fun populateValue(originalValues: Struct, updatedValues: Struct): Struct {
+        val newFields = updatedValues.schema().fields()
         for (field in newFields) {
             try {
                 if (field.schema().type().getName() == "struct") {
@@ -47,12 +47,13 @@ class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<
                         .put(field.name(), originalValues.get(field.name()))
                 }
             } catch (e: DataException) {
+                // This is catch exception thrown when field.name() in .get(field.name())) does not exists
             }
         }
         return updatedValues
     }
 
-    fun extractUnifiedValue(oauthResponseData: Struct): Triple<String, String, String> {
+    private fun extractUnifiedValues(oauthResponseData: Struct): Triple<String, String, String> {
         var teamId: String
         var teamName: String
         var accessToken: String
@@ -77,7 +78,7 @@ class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<
         val valueStruct: Struct = Requirements.requireStruct(record.value(), PURPOSE)
         val oauthResponseData: Struct = Requirements.requireStruct(valueStruct.get("oauth_response_data"), PURPOSE)
         val updatedSchemaBuilder: SchemaBuilder = removeIgnoredAttributes(valueStruct.schema().fields(), SchemaBuilder.struct())
-        val(teamId, teamName, accessToken) = extractUnifiedValue(oauthResponseData)
+        val(teamId, teamName, accessToken) = extractUnifiedValues(oauthResponseData)
 
         // Add back the unified fields
         val modifiedPayloadSchema = updatedSchemaBuilder
