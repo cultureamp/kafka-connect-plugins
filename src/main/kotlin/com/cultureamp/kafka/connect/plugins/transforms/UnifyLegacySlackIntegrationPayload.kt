@@ -66,7 +66,7 @@ class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<
             accessToken = dot.get("bot_access_token") as String
         } catch (e: DataException) {
             // Slack Integration OAuth V2 Payload
-            val team: Struct = Requirements.requireStruct(oauthResponseData.get("team"), PURPOSE)
+            val team: Struct = Requirements.requireStruct(oauthResponseData.get("team"), oauthResponseData.toString())
             teamId = team.get("id") as String
             teamName = team.get("name") as String
             accessToken = oauthResponseData.get("access_token") as String
