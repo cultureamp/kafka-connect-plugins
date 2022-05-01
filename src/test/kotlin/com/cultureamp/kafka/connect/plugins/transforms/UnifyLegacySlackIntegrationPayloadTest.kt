@@ -67,10 +67,18 @@ class UnifyLegacySlackIntegrationPayloadTest {
             .put("id", TEAM_ID)
             .put("name", TEAM_NAME)
 
+        val enterpriseSchema = SchemaBuilder.struct()
+            .field("id", Schema.STRING_SCHEMA)
+            .build()
+
+        val enterpriseStruct = Struct(teamSchema)
+            .put("id", ENTERPRISE_ID)
+
         val oauthResponseDataSchema = SchemaBuilder.struct()
             .field("access_token", Schema.STRING_SCHEMA)
             .field("scope", Schema.STRING_SCHEMA)
             .field("team", teamSchema)
+            // .field("enterprise", null)
             .build()
 
         val oauthResponseDataStruct = Struct(oauthResponseDataSchema)
@@ -182,7 +190,7 @@ class UnifyLegacySlackIntegrationPayloadTest {
             .put("team_id", TEAM_ID)
             .put("team_name", TEAM_NAME)
             .put("scope", SCOPE)
-            // .put("enterprise_id", null)
+            .put("enterprise_id", null)
 
         assertEquals(expectedValue, transformedRecord.value())
         assertEquals(expectedSchema, transformedRecord.valueSchema())

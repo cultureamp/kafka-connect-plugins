@@ -22,7 +22,8 @@ class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<
             "oauth_response_data.scope",
             "oauth_response_data.bot.bot_access_token",
             "oauth_response_data.team.id",
-            "oauth_response_data.team.name"
+            "oauth_response_data.team.name",
+            "oauth_response_data.enterprise.id",
     )
     private val PURPOSE = "unify legacy slack integration data"
     override fun configure(configs: MutableMap<String, *>?) {}
@@ -74,10 +75,10 @@ class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<
 
         try {
             // Only Slack Integration OAuth V1 has "bot" child element
-            val dot: Struct = Requirements.requireStruct(oauthResponseData.get("bot"), PURPOSE)
+            val bot: Struct = Requirements.requireStruct(oauthResponseData.get("bot"), PURPOSE)
             teamId = oauthResponseData.get("team_id") as String
             teamName = oauthResponseData.get("team_name") as String
-            accessToken = dot.get("bot_access_token") as String
+            accessToken = bot.get("bot_access_token") as String
             scope = oauthResponseData.get("scope") as String
             enterpriseId = oauthResponseData.get("enterprise_id") as String?
         } catch (e: DataException) {
@@ -87,6 +88,11 @@ class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<
             teamName = team.get("name") as String
             accessToken = oauthResponseData.get("access_token") as String
             scope = oauthResponseData.get("scope") as String
+            // TODO: Figure out how to check if the struct is there in a safe way.
+            // var enterprise: Struct? = oauthResponseData.get("enterprise") as Struct?
+            // if (enterprise != null) {
+            //     enterpriseId = enterprise.get("id") as String?
+            // }
         }
         return Quintuple(teamId, teamName, accessToken, scope, enterpriseId)
     }
