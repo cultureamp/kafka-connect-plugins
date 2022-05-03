@@ -14,16 +14,16 @@ data class Quintuple<T1, T2, T3, T4, T5>(val t1: T1, val t2: T2, val t3: T3, val
 
 class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<R> {
     private val ignoredAttributes = arrayListOf(
-            "account_aggregate_id",
-            "oauth_response_data.access_token",
-            "oauth_response_data.team_id",
-            "oauth_response_data.team_name",
-            "oauth_response_data.enterprise_id",
-            "oauth_response_data.scope",
-            "oauth_response_data.bot.bot_access_token",
-            "oauth_response_data.team.id",
-            "oauth_response_data.team.name",
-            "oauth_response_data.enterprise.id",
+        "account_aggregate_id",
+        "oauth_response_data.access_token",
+        "oauth_response_data.team_id",
+        "oauth_response_data.team_name",
+        "oauth_response_data.enterprise_id",
+        "oauth_response_data.scope",
+        "oauth_response_data.bot.bot_access_token",
+        "oauth_response_data.team.id",
+        "oauth_response_data.team.name",
+        "oauth_response_data.enterprise.id",
     )
     private val PURPOSE = "unify legacy slack integration data"
     override fun configure(configs: MutableMap<String, *>?) {}
@@ -88,13 +88,17 @@ class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<
             teamName = team.get("name") as String
             accessToken = oauthResponseData.get("access_token") as String
             scope = oauthResponseData.get("scope") as String
-            // TODO: Figure out how to check if the struct is there in a safe way.
-            // var enterprise: Struct? = oauthResponseData.get("enterprise") as Struct?
-            // if (enterprise != null) {
-            //     enterpriseId = enterprise.get("id") as String?
-            // }
+            enterpriseId = extractEnterpriseValue(oauthResponseData)
         }
         return Quintuple(teamId, teamName, accessToken, scope, enterpriseId)
+    }
+
+    private fun extractEnterpriseValue(oauthResponseData: Struct): String? {
+        try {
+            return Requirements.requireStruct(oauthResponseData.get("enterprise"), PURPOSE).get("id") as String
+        } catch (e: DataException) {
+            return null
+        }
     }
 
     override fun apply(record: R): R {
