@@ -10,8 +10,21 @@ import org.apache.kafka.connect.errors.DataException
 import org.apache.kafka.connect.transforms.Transformation
 import org.apache.kafka.connect.transforms.util.Requirements
 
+data class Quintuple<T1, T2, T3, T4, T5>(val t1: T1, val t2: T2, val t3: T3, val t4: T4, val t5: T5)
+
 class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<R> {
-    private val ignoredAttributes = arrayListOf("account_aggregate_id", "oauth_response_data.access_token", "oauth_response_data.team_id", "oauth_response_data.team_name", "oauth_response_data.bot.bot_access_token", "oauth_response_data.team.id", "oauth_response_data.team.name")
+    private val ignoredAttributes = arrayListOf(
+        "account_aggregate_id",
+        "oauth_response_data.access_token",
+        "oauth_response_data.team_id",
+        "oauth_response_data.team_name",
+        "oauth_response_data.enterprise_id",
+        "oauth_response_data.scope",
+        "oauth_response_data.bot.bot_access_token",
+        "oauth_response_data.team.id",
+        "oauth_response_data.team.name",
+        "oauth_response_data.enterprise.id",
+    )
     private val PURPOSE = "unify legacy slack integration data"
     override fun configure(configs: MutableMap<String, *>?) {}
 
@@ -53,32 +66,46 @@ class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<
         return updatedValues
     }
 
-    private fun extractUnifiedValues(oauthResponseData: Struct): Triple<String, String, String> {
+    private fun extractUnifiedValues(oauthResponseData: Struct): Quintuple<String, String, String, String, String?> {
         var teamId: String
         var teamName: String
         var accessToken: String
+        var scope: String
+        var enterpriseId: String? = null
 
         try {
             // Only Slack Integration OAuth V1 has "bot" child element
-            val dot: Struct = Requirements.requireStruct(oauthResponseData.get("bot"), PURPOSE)
+            val bot: Struct = Requirements.requireStruct(oauthResponseData.get("bot"), PURPOSE)
             teamId = oauthResponseData.get("team_id") as String
             teamName = oauthResponseData.get("team_name") as String
-            accessToken = dot.get("bot_access_token") as String
+            accessToken = bot.get("bot_access_token") as String
+            scope = oauthResponseData.get("scope") as String
+            enterpriseId = oauthResponseData.get("enterprise_id") as String?
         } catch (e: DataException) {
             // Slack Integration OAuth V2 Payload
             val team: Struct = Requirements.requireStruct(oauthResponseData.get("team"), oauthResponseData.toString())
             teamId = team.get("id") as String
             teamName = team.get("name") as String
             accessToken = oauthResponseData.get("access_token") as String
+            scope = oauthResponseData.get("scope") as String
+            enterpriseId = extractEnterpriseValue(oauthResponseData)
         }
-        return Triple(teamId, teamName, accessToken)
+        return Quintuple(teamId, teamName, accessToken, scope, enterpriseId)
+    }
+
+    private fun extractEnterpriseValue(oauthResponseData: Struct): String? {
+        try {
+            return Requirements.requireStruct(oauthResponseData.get("enterprise"), PURPOSE).get("id") as String
+        } catch (e: DataException) {
+            return null
+        }
     }
 
     override fun apply(record: R): R {
         val valueStruct: Struct = Requirements.requireStruct(record.value(), PURPOSE)
         val oauthResponseData: Struct = Requirements.requireStruct(valueStruct.get("oauth_response_data"), PURPOSE)
         val updatedSchemaBuilder: SchemaBuilder = removeIgnoredAttributes(valueStruct.schema().fields(), SchemaBuilder.struct())
-        val(teamId, teamName, accessToken) = extractUnifiedValues(oauthResponseData)
+        val(teamId, teamName, accessToken, scope, enterpriseId) = extractUnifiedValues(oauthResponseData)
 
         // Add back the unified fields
         val modifiedPayloadSchema = updatedSchemaBuilder
@@ -87,6 +114,8 @@ class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<
             .field("access_token", Schema.STRING_SCHEMA)
             .field("team_id", Schema.STRING_SCHEMA)
             .field("team_name", Schema.STRING_SCHEMA)
+            .field("access_token_scopes", Schema.STRING_SCHEMA)
+            .field("enterprise_id", Schema.OPTIONAL_STRING_SCHEMA)
             .build()
 
         val updatedValuesStruct: Struct = populateValue(valueStruct, Struct(modifiedPayloadSchema))
@@ -95,6 +124,8 @@ class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<
             .put("access_token", accessToken)
             .put("team_id", teamId)
             .put("team_name", teamName)
+            .put("access_token_scopes", scope)
+            .put("enterprise_id", enterpriseId)
 
         return record.newRecord(record.topic(), record.kafkaPartition(), record.keySchema(), record.key(), modifiedPayloadSchema, modifiedPayloadStruct, record.timestamp())
     }

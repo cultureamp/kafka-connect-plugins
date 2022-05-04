@@ -13,8 +13,10 @@ class UnifyLegacySlackIntegrationPayloadTest {
     private val ACCOUNT_ID = "account-id"
     private val TEAM_ID = "team-id"
     private val TEAM_NAME = "team-name"
+    private val SCOPE = "access_token_scopes"
+    private val ENTERPRISE_ID = "enterprise-id"
 
-    private fun createOAuthV1Payload(): Pair<Schema, Struct> {
+    private fun createOAuthV1Payload(enterpriseId: String?): Pair<Schema, Struct> {
         val botSchema = SchemaBuilder.struct()
             .field("bot_access_token", Schema.STRING_SCHEMA)
             .field("bot_user_id", Schema.STRING_SCHEMA)
@@ -28,6 +30,8 @@ class UnifyLegacySlackIntegrationPayloadTest {
             .field("access_token", Schema.STRING_SCHEMA)
             .field("team_id", Schema.STRING_SCHEMA)
             .field("team_name", Schema.STRING_SCHEMA)
+            .field("enterprise_id", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("scope", Schema.STRING_SCHEMA)
             .field("bot", botSchema)
             .build()
 
@@ -35,6 +39,8 @@ class UnifyLegacySlackIntegrationPayloadTest {
             .put("access_token", "a-b-c")
             .put("team_id", TEAM_ID)
             .put("team_name", TEAM_NAME)
+            .put("enterprise_id", enterpriseId)
+            .put("scope", SCOPE)
             .put("bot", botStruct)
 
         val payloadSchema = SchemaBuilder.struct()
@@ -51,7 +57,9 @@ class UnifyLegacySlackIntegrationPayloadTest {
         return payloadSchema to payloadStruct
     }
 
-    private fun createOAuthV2Payload(): Pair<Schema, Struct> {
+    private fun createOAuthV2Payload(enterpriseId: String?): Pair<Schema, Struct> {
+        var oauthResponseDataSchema: SchemaBuilder
+
         val teamSchema = SchemaBuilder.struct()
             .field("id", Schema.STRING_SCHEMA)
             .field("name", Schema.STRING_SCHEMA)
@@ -61,14 +69,35 @@ class UnifyLegacySlackIntegrationPayloadTest {
             .put("id", TEAM_ID)
             .put("name", TEAM_NAME)
 
-        val oauthResponseDataSchema = SchemaBuilder.struct()
-            .field("access_token", Schema.STRING_SCHEMA)
-            .field("team", teamSchema)
+        val enterpriseSchema = SchemaBuilder.struct()
+            .field("id", Schema.OPTIONAL_STRING_SCHEMA)
             .build()
 
-        val oauthResponseDataStruct = Struct(oauthResponseDataSchema)
+        val enterpriseStruct = Struct(enterpriseSchema)
+            .put("id", enterpriseId)
+
+        oauthResponseDataSchema = SchemaBuilder.struct()
+            .field("access_token", Schema.STRING_SCHEMA)
+            .field("scope", Schema.STRING_SCHEMA)
+            .field("team", teamSchema)
+
+        if (!enterpriseId.isNullOrEmpty()) {
+            oauthResponseDataSchema
+                .field("enterprise", enterpriseSchema)
+        }
+
+        oauthResponseDataSchema
+            .build()
+
+        var oauthResponseDataStruct = Struct(oauthResponseDataSchema)
             .put("access_token", ACCESS_TOKEN)
+            .put("scope", SCOPE)
             .put("team", teamStruct)
+
+        if (!enterpriseId.isNullOrEmpty()) {
+            oauthResponseDataStruct
+                .put("enterprise", enterpriseStruct)
+        }
 
         val payloadSchema = SchemaBuilder.struct()
             .field("account_aggregate_id", Schema.STRING_SCHEMA)
@@ -82,7 +111,7 @@ class UnifyLegacySlackIntegrationPayloadTest {
         return payloadSchema to payloadStruct
     }
 
-    private fun oAuthV1ExpectedValue(): Pair<Schema, Struct> {
+    private fun oAuthV1ExpectedValue(enterpriseId: String?): Pair<Schema, Struct> {
         val botSchema = SchemaBuilder.struct()
             .field("bot_user_id", Schema.STRING_SCHEMA)
             .build()
@@ -105,6 +134,8 @@ class UnifyLegacySlackIntegrationPayloadTest {
             .field("access_token", Schema.STRING_SCHEMA)
             .field("team_id", Schema.STRING_SCHEMA)
             .field("team_name", Schema.STRING_SCHEMA)
+            .field("access_token_scopes", Schema.STRING_SCHEMA)
+            .field("enterprise_id", Schema.OPTIONAL_STRING_SCHEMA)
             .build()
 
         val expectedValue = Struct(expectedSchema)
@@ -114,28 +145,43 @@ class UnifyLegacySlackIntegrationPayloadTest {
             .put("access_token", ACCESS_TOKEN)
             .put("team_id", TEAM_ID)
             .put("team_name", TEAM_NAME)
+            .put("access_token_scopes", SCOPE)
+            .put("enterprise_id", enterpriseId)
 
         return expectedSchema to expectedValue
     }
 
     @Test
-    fun `With Legacy Slack Integration Data`() {
+    fun `With Legacy Slack Integration Data without an enterprise id`() {
         val transformer: UnifyLegacySlackIntegrationPayload<SourceRecord> = UnifyLegacySlackIntegrationPayload()
-        val (payloadSchema, payloadStruct) = createOAuthV1Payload()
+        val (payloadSchema, payloadStruct) = createOAuthV1Payload(null)
 
         val transformedRecord: SourceRecord = transformer.apply(SourceRecord(null, null, "test", payloadSchema, payloadStruct))
 
-        val (expectedSchema, expectedValue) = oAuthV1ExpectedValue()
+        val (expectedSchema, expectedValue) = oAuthV1ExpectedValue(null)
 
         assertEquals(expectedValue, transformedRecord.value())
         assertEquals(expectedSchema, transformedRecord.valueSchema())
     }
 
     @Test
-    fun `With Slack Integration Data`() {
+    fun `With Legacy Slack Integration Data with an enterprise id`() {
+        val transformer: UnifyLegacySlackIntegrationPayload<SourceRecord> = UnifyLegacySlackIntegrationPayload()
+        val (payloadSchema, payloadStruct) = createOAuthV1Payload(ENTERPRISE_ID)
+
+        val transformedRecord: SourceRecord = transformer.apply(SourceRecord(null, null, "test", payloadSchema, payloadStruct))
+
+        val (expectedSchema, expectedValue) = oAuthV1ExpectedValue(ENTERPRISE_ID)
+
+        assertEquals(expectedValue, transformedRecord.value())
+        assertEquals(expectedSchema, transformedRecord.valueSchema())
+    }
+
+    @Test
+    fun `With Slack Integration Data without an enterprise id`() {
         val transformer: UnifyLegacySlackIntegrationPayload<SourceRecord> = UnifyLegacySlackIntegrationPayload()
 
-        val (payloadSchema, payloadStruct) = createOAuthV2Payload()
+        val (payloadSchema, payloadStruct) = createOAuthV2Payload(null)
 
         val transformedRecord: SourceRecord = transformer.apply(SourceRecord(null, null, "test", payloadSchema, payloadStruct))
 
@@ -145,12 +191,45 @@ class UnifyLegacySlackIntegrationPayloadTest {
             .field("access_token", Schema.STRING_SCHEMA)
             .field("team_id", Schema.STRING_SCHEMA)
             .field("team_name", Schema.STRING_SCHEMA)
+            .field("access_token_scopes", Schema.STRING_SCHEMA)
+            .field("enterprise_id", Schema.OPTIONAL_STRING_SCHEMA)
             .build()
         val expectedValue = Struct(expectedSchema)
             .put("account_aggregate_id", ACCOUNT_ID)
             .put("access_token", ACCESS_TOKEN)
             .put("team_id", TEAM_ID)
             .put("team_name", TEAM_NAME)
+            .put("access_token_scopes", SCOPE)
+            .put("enterprise_id", null)
+
+        assertEquals(expectedValue, transformedRecord.value())
+        assertEquals(expectedSchema, transformedRecord.valueSchema())
+    }
+
+    @Test
+    fun `With Slack Integration Data with an enterprise id`() {
+        val transformer: UnifyLegacySlackIntegrationPayload<SourceRecord> = UnifyLegacySlackIntegrationPayload()
+
+        val (payloadSchema, payloadStruct) = createOAuthV2Payload(ENTERPRISE_ID)
+
+        val transformedRecord: SourceRecord = transformer.apply(SourceRecord(null, null, "test", payloadSchema, payloadStruct))
+
+        val expectedSchema = SchemaBuilder.struct()
+            .name("com.cultureamp.murmur.slack_integrations")
+            .field("account_aggregate_id", Schema.STRING_SCHEMA)
+            .field("access_token", Schema.STRING_SCHEMA)
+            .field("team_id", Schema.STRING_SCHEMA)
+            .field("team_name", Schema.STRING_SCHEMA)
+            .field("access_token_scopes", Schema.STRING_SCHEMA)
+            .field("enterprise_id", Schema.OPTIONAL_STRING_SCHEMA)
+            .build()
+        val expectedValue = Struct(expectedSchema)
+            .put("account_aggregate_id", ACCOUNT_ID)
+            .put("access_token", ACCESS_TOKEN)
+            .put("team_id", TEAM_ID)
+            .put("team_name", TEAM_NAME)
+            .put("access_token_scopes", SCOPE)
+            .put("enterprise_id", ENTERPRISE_ID)
 
         assertEquals(expectedValue, transformedRecord.value())
         assertEquals(expectedSchema, transformedRecord.valueSchema())
