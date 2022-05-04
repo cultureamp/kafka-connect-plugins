@@ -114,7 +114,7 @@ class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<
             .field("access_token", Schema.STRING_SCHEMA)
             .field("team_id", Schema.STRING_SCHEMA)
             .field("team_name", Schema.STRING_SCHEMA)
-            .field("scope", Schema.STRING_SCHEMA)
+            .field("access_token_scopes", Schema.STRING_SCHEMA)
             .field("enterprise_id", Schema.OPTIONAL_STRING_SCHEMA)
             .build()
 
@@ -124,7 +124,7 @@ class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<
             .put("access_token", accessToken)
             .put("team_id", teamId)
             .put("team_name", teamName)
-            .put("scope", scope)
+            .put("access_token_scopes", scope)
             .put("enterprise_id", enterpriseId)
 
         return record.newRecord(record.topic(), record.kafkaPartition(), record.keySchema(), record.key(), modifiedPayloadSchema, modifiedPayloadStruct, record.timestamp())

@@ -13,7 +13,7 @@ class UnifyLegacySlackIntegrationPayloadTest {
     private val ACCOUNT_ID = "account-id"
     private val TEAM_ID = "team-id"
     private val TEAM_NAME = "team-name"
-    private val SCOPE = "scope"
+    private val SCOPE = "access_token_scopes"
     private val ENTERPRISE_ID = "enterprise-id"
 
     private fun createOAuthV1Payload(enterpriseId: String?): Pair<Schema, Struct> {
@@ -134,7 +134,7 @@ class UnifyLegacySlackIntegrationPayloadTest {
             .field("access_token", Schema.STRING_SCHEMA)
             .field("team_id", Schema.STRING_SCHEMA)
             .field("team_name", Schema.STRING_SCHEMA)
-            .field("scope", Schema.STRING_SCHEMA)
+            .field("access_token_scopes", Schema.STRING_SCHEMA)
             .field("enterprise_id", Schema.OPTIONAL_STRING_SCHEMA)
             .build()
 
@@ -145,7 +145,7 @@ class UnifyLegacySlackIntegrationPayloadTest {
             .put("access_token", ACCESS_TOKEN)
             .put("team_id", TEAM_ID)
             .put("team_name", TEAM_NAME)
-            .put("scope", SCOPE)
+            .put("access_token_scopes", SCOPE)
             .put("enterprise_id", enterpriseId)
 
         return expectedSchema to expectedValue
@@ -191,7 +191,7 @@ class UnifyLegacySlackIntegrationPayloadTest {
             .field("access_token", Schema.STRING_SCHEMA)
             .field("team_id", Schema.STRING_SCHEMA)
             .field("team_name", Schema.STRING_SCHEMA)
-            .field("scope", Schema.STRING_SCHEMA)
+            .field("access_token_scopes", Schema.STRING_SCHEMA)
             .field("enterprise_id", Schema.OPTIONAL_STRING_SCHEMA)
             .build()
         val expectedValue = Struct(expectedSchema)
@@ -199,7 +199,7 @@ class UnifyLegacySlackIntegrationPayloadTest {
             .put("access_token", ACCESS_TOKEN)
             .put("team_id", TEAM_ID)
             .put("team_name", TEAM_NAME)
-            .put("scope", SCOPE)
+            .put("access_token_scopes", SCOPE)
             .put("enterprise_id", null)
 
         assertEquals(expectedValue, transformedRecord.value())
@@ -220,7 +220,7 @@ class UnifyLegacySlackIntegrationPayloadTest {
             .field("access_token", Schema.STRING_SCHEMA)
             .field("team_id", Schema.STRING_SCHEMA)
             .field("team_name", Schema.STRING_SCHEMA)
-            .field("scope", Schema.STRING_SCHEMA)
+            .field("access_token_scopes", Schema.STRING_SCHEMA)
             .field("enterprise_id", Schema.OPTIONAL_STRING_SCHEMA)
             .build()
         val expectedValue = Struct(expectedSchema)
@@ -228,7 +228,7 @@ class UnifyLegacySlackIntegrationPayloadTest {
             .put("access_token", ACCESS_TOKEN)
             .put("team_id", TEAM_ID)
             .put("team_name", TEAM_NAME)
-            .put("scope", SCOPE)
+            .put("access_token_scopes", SCOPE)
             .put("enterprise_id", ENTERPRISE_ID)
 
         assertEquals(expectedValue, transformedRecord.value())
