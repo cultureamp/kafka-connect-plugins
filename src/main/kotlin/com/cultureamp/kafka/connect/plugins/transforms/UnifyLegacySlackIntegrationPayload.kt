@@ -86,7 +86,7 @@ class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<
         val valueStruct: Struct = Requirements.requireStruct(record.value(), PURPOSE)
         val oauthResponseData: Struct = Requirements.requireStruct(valueStruct.get("oauth_response_data"), PURPOSE)
         val(teamId, teamName, accessToken, scope, enterpriseId) = extractUnifiedValues(oauthResponseData)
-        var account_aggregate_id = valueStruct.get("account_aggregate_id") as String
+        var accountAggregateId = valueStruct.get("account_aggregate_id") as String
 
         val modifiedPayloadSchema = SchemaBuilder.struct()
             .name("com.cultureamp.murmur.slack_integrations")
@@ -99,7 +99,7 @@ class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<
             .build()
 
         val modifiedPayloadStruct = Struct(modifiedPayloadSchema)
-            .put("account_aggregate_id", account_aggregate_id)
+            .put("account_aggregate_id", accountAggregateId)
             .put("access_token", accessToken)
             .put("team_id", teamId)
             .put("team_name", teamName)
