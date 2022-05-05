@@ -2,7 +2,6 @@ package com.cultureamp.kafka.connect.plugins.transforms
 
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.ConnectRecord
-import org.apache.kafka.connect.data.Field
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
@@ -30,24 +29,6 @@ class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<
 
     override fun close() {}
 
-    private fun removeIgnoredAttributes(fields: List<Field>, builder: SchemaBuilder, hierarchy: String = ""): SchemaBuilder {
-        for (field in fields) {
-            if ("$hierarchy${field.name()}" !in ignoredAttributes) {
-                if (field.schema().type().getName() == "struct") {
-                    val childSchema = removeIgnoredAttributes(field.schema().fields(), SchemaBuilder.struct(), "$hierarchy${field.name()}.")
-                    // Only add child schema if is not empty
-                    if (childSchema.fields().isNotEmpty()) {
-                        builder.field(field.name(), childSchema.build())
-                    }
-                } else {
-                    builder
-                        .field(field.name(), field.schema())
-                }
-            }
-        }
-        return builder
-    }
-
     private fun populateValue(originalValues: Struct, updatedValues: Struct): Struct {
         val newFields = updatedValues.schema().fields()
         for (field in newFields) {
@@ -71,7 +52,7 @@ class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<
         var teamName: String
         var accessToken: String
         var scope: String
-        var enterpriseId: String? = null
+        var enterpriseId: String?
 
         try {
             // Only Slack Integration OAuth V1 has "bot" child element
@@ -104,11 +85,10 @@ class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<
     override fun apply(record: R): R {
         val valueStruct: Struct = Requirements.requireStruct(record.value(), PURPOSE)
         val oauthResponseData: Struct = Requirements.requireStruct(valueStruct.get("oauth_response_data"), PURPOSE)
-        val updatedSchemaBuilder: SchemaBuilder = removeIgnoredAttributes(valueStruct.schema().fields(), SchemaBuilder.struct())
         val(teamId, teamName, accessToken, scope, enterpriseId) = extractUnifiedValues(oauthResponseData)
+        var accountAggregateId = valueStruct.get("account_aggregate_id") as String
 
-        // Add back the unified fields
-        val modifiedPayloadSchema = updatedSchemaBuilder
+        val modifiedPayloadSchema = SchemaBuilder.struct()
             .name("com.cultureamp.murmur.slack_integrations")
             .field("account_aggregate_id", Schema.STRING_SCHEMA)
             .field("access_token", Schema.STRING_SCHEMA)
@@ -118,9 +98,8 @@ class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<
             .field("enterprise_id", Schema.OPTIONAL_STRING_SCHEMA)
             .build()
 
-        val updatedValuesStruct: Struct = populateValue(valueStruct, Struct(modifiedPayloadSchema))
-
-        val modifiedPayloadStruct = updatedValuesStruct
+        val modifiedPayloadStruct = Struct(modifiedPayloadSchema)
+            .put("account_aggregate_id", accountAggregateId)
             .put("access_token", accessToken)
             .put("team_id", teamId)
             .put("team_name", teamName)

@@ -111,46 +111,6 @@ class UnifyLegacySlackIntegrationPayloadTest {
         return payloadSchema to payloadStruct
     }
 
-    private fun oAuthV1ExpectedValue(enterpriseId: String?): Pair<Schema, Struct> {
-        val botSchema = SchemaBuilder.struct()
-            .field("bot_user_id", Schema.STRING_SCHEMA)
-            .build()
-
-        val botStruct = Struct(botSchema)
-            .put("bot_user_id", "UV8DT789F")
-
-        val oauthResponseDataSchema = SchemaBuilder.struct()
-            .field("bot", botSchema)
-            .build()
-
-        val oauthResponseDataStruct = Struct(oauthResponseDataSchema)
-            .put("bot", botStruct)
-
-        val expectedSchema = SchemaBuilder.struct()
-            .name("com.cultureamp.murmur.slack_integrations")
-            .field("created_at", Schema.STRING_SCHEMA)
-            .field("oauth_response_data", oauthResponseDataSchema)
-            .field("account_aggregate_id", Schema.STRING_SCHEMA)
-            .field("access_token", Schema.STRING_SCHEMA)
-            .field("team_id", Schema.STRING_SCHEMA)
-            .field("team_name", Schema.STRING_SCHEMA)
-            .field("access_token_scopes", Schema.STRING_SCHEMA)
-            .field("enterprise_id", Schema.OPTIONAL_STRING_SCHEMA)
-            .build()
-
-        val expectedValue = Struct(expectedSchema)
-            .put("created_at", CREATED_AT)
-            .put("oauth_response_data", oauthResponseDataStruct)
-            .put("account_aggregate_id", ACCOUNT_ID)
-            .put("access_token", ACCESS_TOKEN)
-            .put("team_id", TEAM_ID)
-            .put("team_name", TEAM_NAME)
-            .put("access_token_scopes", SCOPE)
-            .put("enterprise_id", enterpriseId)
-
-        return expectedSchema to expectedValue
-    }
-
     @Test
     fun `With Legacy Slack Integration Data without an enterprise id`() {
         val transformer: UnifyLegacySlackIntegrationPayload<SourceRecord> = UnifyLegacySlackIntegrationPayload()
@@ -158,7 +118,22 @@ class UnifyLegacySlackIntegrationPayloadTest {
 
         val transformedRecord: SourceRecord = transformer.apply(SourceRecord(null, null, "test", payloadSchema, payloadStruct))
 
-        val (expectedSchema, expectedValue) = oAuthV1ExpectedValue(null)
+        val expectedSchema = SchemaBuilder.struct()
+            .name("com.cultureamp.murmur.slack_integrations")
+            .field("account_aggregate_id", Schema.STRING_SCHEMA)
+            .field("access_token", Schema.STRING_SCHEMA)
+            .field("team_id", Schema.STRING_SCHEMA)
+            .field("team_name", Schema.STRING_SCHEMA)
+            .field("access_token_scopes", Schema.STRING_SCHEMA)
+            .field("enterprise_id", Schema.OPTIONAL_STRING_SCHEMA)
+            .build()
+        val expectedValue = Struct(expectedSchema)
+            .put("account_aggregate_id", ACCOUNT_ID)
+            .put("access_token", ACCESS_TOKEN)
+            .put("team_id", TEAM_ID)
+            .put("team_name", TEAM_NAME)
+            .put("access_token_scopes", SCOPE)
+            .put("enterprise_id", null)
 
         assertEquals(expectedValue, transformedRecord.value())
         assertEquals(expectedSchema, transformedRecord.valueSchema())
@@ -171,7 +146,22 @@ class UnifyLegacySlackIntegrationPayloadTest {
 
         val transformedRecord: SourceRecord = transformer.apply(SourceRecord(null, null, "test", payloadSchema, payloadStruct))
 
-        val (expectedSchema, expectedValue) = oAuthV1ExpectedValue(ENTERPRISE_ID)
+        val expectedSchema = SchemaBuilder.struct()
+            .name("com.cultureamp.murmur.slack_integrations")
+            .field("account_aggregate_id", Schema.STRING_SCHEMA)
+            .field("access_token", Schema.STRING_SCHEMA)
+            .field("team_id", Schema.STRING_SCHEMA)
+            .field("team_name", Schema.STRING_SCHEMA)
+            .field("access_token_scopes", Schema.STRING_SCHEMA)
+            .field("enterprise_id", Schema.OPTIONAL_STRING_SCHEMA)
+            .build()
+        val expectedValue = Struct(expectedSchema)
+            .put("account_aggregate_id", ACCOUNT_ID)
+            .put("access_token", ACCESS_TOKEN)
+            .put("team_id", TEAM_ID)
+            .put("team_name", TEAM_NAME)
+            .put("access_token_scopes", SCOPE)
+            .put("enterprise_id", ENTERPRISE_ID)
 
         assertEquals(expectedValue, transformedRecord.value())
         assertEquals(expectedSchema, transformedRecord.valueSchema())
