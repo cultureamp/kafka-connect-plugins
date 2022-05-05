@@ -63,7 +63,6 @@ class UnifyLegacySlackIntegrationPayload<R : ConnectRecord<R>> : Transformation<
             scope = oauthResponseData.get("scope") as String
             enterpriseId = oauthResponseData.get("enterprise_id") as String?
         } catch (e: DataException) {
-            System.out.println("oauthResponseData: $oauthResponseData")
             // Slack Integration OAuth V2 Payload
             val team: Struct = Requirements.requireStruct(oauthResponseData.get("team"), oauthResponseData.toString())
             teamId = team.get("id") as String
