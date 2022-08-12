@@ -1,0 +1,146 @@
+{
+  "type": "record",
+  "name": "default",
+  "fields": [
+    {
+      "name": "account_aggregate_id",
+      "type": [
+        "null",
+        {
+          "type": "string",
+          "logicalType": "uuid"
+        }
+      ],
+      "default": null
+    },
+    {
+      "name": "oauth_response_data",
+      "type": {
+        "name": "oauth_response_data",
+        "type": "record",
+        "fields": [
+          {
+            "name": "access_token",
+            "type": [
+              "null",
+              "string"
+            ],
+            "default": null
+          },
+          {
+            "name": "team_id",
+            "type": [
+              "null",
+              "string"
+            ],
+            "default": null
+          },
+          {
+            "name": "team_name",
+            "type": [
+              "null",
+              "string"
+            ],
+            "default": null
+          },
+          {
+            "name": "scope",
+            "type": "string"
+          },
+          {
+            "name": "enterprise_id",
+            "type": [
+              "null",
+              "string"
+            ],
+            "default": null
+          },
+          {
+            "name": "team",
+            "type": [
+              "null",
+              {
+                "name": "team",
+                "type": "record",
+                "fields": [
+                  {
+                    "name": "id",
+                    "type": "string"
+                  },
+                  {
+                    "name": "name",
+                    "type": "string"
+                  }
+                ]
+              }
+            ],
+            "default": null
+          },
+          {
+            "name": "enterprise",
+            "type": [
+              "null",
+              {
+                "name": "enterprise",
+                "type": "record",
+                "fields": [
+                  {
+                    "name": "id",
+                    "type": "string"
+                  },
+                  {
+                    "name": "name",
+                    "type": "string"
+                  }
+                ]
+              }
+            ],
+            "default": null
+          },
+          {
+            "name": "bot",
+            "type": [
+              "null",
+              {
+                "name": "bot",
+                "type": "record",
+                "fields": [
+                  {
+                    "name": "bot_access_token",
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "default": null
+                  }
+                ]
+              }
+            ],
+            "default": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "deleted_at",
+      "type": [
+        "null",
+        {
+          "type": "string"
+        }
+      ],
+      "default": null
+    },
+    {
+      "name": "status",
+      "type": [
+        "null",
+        {
+          "type": "string"
+        }
+      ],
+      "default": null
+    }
+  ],
+  "connect.name": "default"
+}

@@ -1,0 +1,31 @@
+{
+  "_id": {
+    "$oid": "6268966310536f002586b676"
+  },
+  "account_aggregate_id": "cd263a81-cd2d-4d88-b036-38681c57ea97",
+  "account_id": {
+    "$oid": "624d2da5f0660a002adbcc52"
+  },
+  "_type": "SlackIntegration",
+  "created_at": {
+    "$date": 1651021411280
+  },
+  "oauth_response_data": {
+    "ok": true,
+    "access_token": "xoxp-2681941652837-2684924935138-3424735880995-50e43c363d9044d44fea338e641f1dcf",
+    "scope": "identity.basic,identity.email,identity.team",
+    "user_id": "U02L4T6TH42",
+    "team_id": "T02L1TPK6QM",
+    "enterprise_id": "E03CFNSKHBM",
+    "team_name": "Slack Testing",
+    "bot": {
+      "bot_user_id": "U03AL8UDVA9",
+      "bot_access_token": "xoxb-2681941652837-3360300471349-5ANLxed6vDqNHhalK45O3RB8"
+    }
+  },
+  "status": "active",
+  "updated_at": {
+    "$date": 1651021414593
+  },
+  "v": 0
+}

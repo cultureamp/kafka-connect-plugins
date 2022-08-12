@@ -1,0 +1,40 @@
+{
+  "type": "record",
+  "name": "slack_integrations",
+  "namespace": "com.cultureamp.murmur",
+  "fields": [
+    {
+      "name": "account_aggregate_id",
+      "type": "string"
+    },
+    {
+      "name": "access_token",
+      "type": "string"
+    },
+    {
+      "name": "team_id",
+      "type": "string"
+    },
+    {
+      "name": "team_name",
+      "type": "string"
+    },
+    {
+      "name": "access_token_scopes",
+      "type": "string"
+    },
+    {
+      "name": "enterprise_id",
+      "type": ["null", "string"]
+    },
+    {
+      "name": "is_deleted",
+      "type": "boolean"
+    },
+    {
+      "name": "status",
+      "type": "string"
+    }
+  ],
+  "connect.name": "com.cultureamp.murmur.slack_integrations"
+}

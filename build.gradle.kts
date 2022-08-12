@@ -15,7 +15,7 @@ plugins {
 }
 
 // Package version
-version = "0.4.1"
+version = "0.5.1"
 
 repositories {
     // Use Maven Central for resolving dependencies.
@@ -32,6 +32,7 @@ dependencies {
     // Kafka dependencies
     implementation("org.apache.kafka:connect-api:$kafkaVersion")
     implementation("org.apache.kafka:connect-transforms:$kafkaVersion")
+    implementation("org.apache.avro:avro:1.11.1")
 
     // Use the Kotlin test library.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
@@ -41,6 +42,9 @@ dependencies {
 
     implementation("ch.qos.logback:logback-classic:1.2.11")
     implementation("ch.qos.logback:logback-core:1.2.11")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.3")
+    implementation("org.mongodb.kafka:mongo-kafka-connect:1.7.0")
+    implementation("org.mongodb:bson:4.5.1")
 }
 
 // A full list of config options can be found here:
