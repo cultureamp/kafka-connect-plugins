@@ -35,116 +35,25 @@ Example
 * Before: `Headers = { account_id: "04a96f30-3dfa-11ec-9bbc-0242ac130002" }, Partition = 0`
 * After: `Headers = { account_id: "04a96f30-3dfa-11ec-9bbc-0242ac130002" }, Partition = 7`
 
-## Unify Legacy SlackIntegration Payload
+## SlackIntegration Payload Transformer
 
-This is a custom transformer to unify `SlackIntegration` collections coming out of Murmur
+This is a custom transformer to extract and reshape fields from `SlackIntegration` collections coming out of Murmur.
 
-We have 2 document variants for the `SlackIntegration` (Thanks MongoDB!)
+There are 2 document variants for the `SlackIntegration`
+- OAuth V1: `resources/com/cultureamp/slack-integration-insert-v1.json`
+- OAuth V2: `resources/com/cultureamp/slack-integration-insert-v2.json`
 
-**OAuth V1**
-```
-{
-    "_id": {
-        "$oid": "5e703178fff837001ffaf052"
-    },
-    "account_aggregate_id": "d8fb1ad0-6308-47c8-84d6-1eb0f367ca0d",
-    "account_id": {
-        "$oid": "5e2a754ddd99fd0022333044"
-    },
-    "created_at": "2020-03-17T02:10:00.181Z",
-    "oauth_response_data": {
-        "ok": true,
-        "access_token": "xoxp-993008094547-1006686967558-1004086920580-f7723a0d45deb6a482350428918781e3",
-        "scope": "identify,bot",
-        "user_id": "U0106L6UFGE",
-        "team_id": "TV7082SG3",
-        "enterprise_id": null,
-        "team_name": "Slack Testing",
-        "bot": {
-            "bot_user_id": "UV8DT789F",
-            "bot_access_token": "xoxb-993008094547-994469246321-XgSvWxmFSfRHP8gf55Y7dS28"
-        }
-    },
-    "status": "active",
-    "updated_at": "2022-04-07T03:29:39.800Z",
-    "v": 0
-}
-```
-**OAuth V2**
-```
-{
-    "_id": {
-        "$oid": "624fd8c271efe5001fa984d5"
-    },
-    "account_aggregate_id": "8c6110c8-a879-40e7-9d3a-0fd91ee999a2",
-    "account_id": {
-        "$oid": "5ff62e4ce1cda00025f80576"
-    },
-    "created_at": "2022-04-08T06:40:02.649Z",
-    "oauth_response_data": {
-        "ok": true,
-        "app_id": "A037SJ77B41",
-        "authed_user": {
-            "id": "U02L4T6TH42",
-            "scope": "identity.basic,identity.email",
-            "access_token": "xoxp-2681941652837-2684924935138-3363184295571-0912805e1a9fb49b9f36e070bfdea9cd",
-            "token_type": "user"
-        },
-        "scope": "chat:write,commands,im:history,im:read,im:write,users.profile:read,users:read,users:read.email",
-        "token_type": "bot",
-        "access_token": "xoxb-2681941652837-3360300471349-0yNRFusOQ6ciye0X5AyDAB6S",
-        "bot_user_id": "U03AL8UDVA9",
-        "team": {
-            "id": "T02L1TPK6QM",
-            "name": "Angel CA Test Workspace"
-        },
-        "enterprise": null,
-        "is_enterprise_install": false
-    },
-    "status": "active",
-    "updated_at": "2022-04-08T06:40:02.657Z",
-    "v": 0
-}
-```
-What this transformer does is to make sure we can get a unified payload into the topic. Without a custom transformer we will have multiple attribute in the topic which will not make sense to anyone without context
+What this transformer does is to make sure we can get a unified payload into the topic. Without a custom transformer we will have multiple attributes in the topic which will not make sense to anyone without context.
 
 ### Examples
-
 Assume the following configuration:
 
-```json
-"transforms": "UnifyLegacySlackIntegrationPayload",
-"transforms.UnifyLegacySlackIntegrationPayload.type":"com.cultureamp.kafka.connect.transforms.UnifyLegacySlackIntegrationPayload",
+```yaml
+"transforms": "SlackIntegrationPayloadTransformer"
+"transforms.SlackIntegrationPayloadTransformer.type":"com.cultureamp.kafka.connect.transforms.SlackIntegrationPayloadTransformer"
 ```
 
-Avro Schema:
-
-```
-{
-  "type": "record",
-  "name": "ConnectDefault",
-  "namespace": "io.confluent.connect.avro",
-  "fields": [
-    {
-      "name": "account_aggregate_id",
-      "type": "string"
-    },
-    {
-      "name": "access_token",
-      "type": "string"
-    },
-    {
-      "name": "team_id",
-      "type": "string"
-    },
-    {
-      "name": "team_name",
-      "type": "string"
-    }
-  ]
-}
-```
-
+Target Avro Schema: `resources/com/cultureamp/slack-integration-target-schema.avsc`
 
 ## Installation
 This library is built as a single `.jar` and published as a Github release. To install in your Connect cluster, add the JAR file to a directory that is on the clusters `plugin.path`.
