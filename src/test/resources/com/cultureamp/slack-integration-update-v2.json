@@ -1,0 +1,65 @@
+{
+  "_id": {
+    "_data": "8262F9922C000000032B022C0100296E5A100411EEE73C37E0433A9A7E61F1DEF86C9C46645F696400646268966310536F002586B6760004"
+  },
+  "operationType": "update",
+  "fullDocument": {
+    "_id": {
+      "$oid": "6268966310536f002586b676"
+    },
+    "_type": "SlackIntegration",
+    "account_aggregate_id": "cd263a81-cd2d-4d88-b036-38681c57ea97",
+    "account_id": {
+      "$oid": "624d2da5f0660a002adbcc52"
+    },
+    "created_at": {
+      "$date": 1651021411280
+    },
+    "status": "inactive",
+    "updated_at": {
+      "$date": 1651021414593
+    },
+    "v": 0.0,
+    "oauth_response_data": {
+      "ok": true,
+      "app_id": "A037SJ77B41",
+      "authed_user": {
+        "id": "U02L4T6TH42",
+        "scope": "identity.basic,identity.email,identity.team",
+        "access_token": "xoxp-2681941652837-2684924935138-3424735880995-50e43c363d9044d44fea338e641f1dcf",
+        "token_type": "user"
+      },
+      "scope": "identity.basic,identity.email,identity.team",
+      "token_type": "bot",
+      "access_token": "xoxb-2681941652837-3360300471349-5ANLxed6vDqNHhalK45O3RB8",
+      "bot_user_id": "U03AL8UDVA9",
+      "team": {
+        "id": "T02L1TPK6QM",
+        "name": "Slack Testing"
+      },
+      "enterprise": null,
+      "is_enterprise_install": false
+    }
+  },
+  "ns": {
+    "db": "murmur_development",
+    "coll": "integrations"
+  },
+  "documentKey": {
+    "_id": {
+      "$oid": "6268966310536f002586b676"
+    }
+  },
+  "updateDescription": {
+    "updatedFields": {
+      "status": "inactive"
+    },
+    "removedFields": []
+  },
+  "clusterTime": {
+    "$timestamp": {
+      "t": 1660523052,
+      "i": 3
+    }
+  }
+}

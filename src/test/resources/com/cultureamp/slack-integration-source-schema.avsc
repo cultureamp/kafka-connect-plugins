@@ -1,0 +1,140 @@
+{
+  "name": "ChangeStream",
+  "type": "record",
+  "fields": [
+    {
+      "name": "_id",
+      "type": "string"
+    },
+    {
+      "name": "operationType",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    {
+      "name": "fullDocument",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    {
+      "name": "ns",
+      "type": [
+        {
+          "name": "ns",
+          "type": "record",
+          "fields": [
+            {
+              "name": "db",
+              "type": "string"
+            },
+            {
+              "name": "coll",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          ]
+        },
+        "null"
+      ]
+    },
+    {
+      "name": "to",
+      "type": [
+        {
+          "name": "to",
+          "type": "record",
+          "fields": [
+            {
+              "name": "db",
+              "type": "string"
+            },
+            {
+              "name": "coll",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          ]
+        },
+        "null"
+      ]
+    },
+    {
+      "name": "documentKey",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    {
+      "name": "updateDescription",
+      "type": [
+        {
+          "name": "updateDescription",
+          "type": "record",
+          "fields": [
+            {
+              "name": "updatedFields",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            {
+              "name": "removedFields",
+              "type": [
+                {
+                  "type": "array",
+                  "items": "string"
+                },
+                "null"
+              ]
+            }
+          ]
+        },
+        "null"
+      ]
+    },
+    {
+      "name": "clusterTime",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    {
+      "name": "txnNumber",
+      "type": [
+        "long",
+        "null"
+      ]
+    },
+    {
+      "name": "lsid",
+      "type": [
+        {
+          "name": "lsid",
+          "type": "record",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string"
+            },
+            {
+              "name": "uid",
+              "type": "string"
+            }
+          ]
+        },
+        "null"
+      ]
+    }
+  ]
+}

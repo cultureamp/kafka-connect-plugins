@@ -1,0 +1,21 @@
+{
+  "_id": {
+    "_data": "8262F992FE000000012B022C0100296E5A100411EEE73C37E0433A9A7E61F1DEF86C9C46645F696400646268966310536F002586B6760004"
+  },
+  "operationType": "delete",
+  "ns": {
+    "db": "murmur_development",
+    "coll": "integrations"
+  },
+  "documentKey": {
+    "_id": {
+      "$oid": "6268966310536f002586b676"
+    }
+  },
+  "clusterTime": {
+    "$timestamp": {
+      "t": 1660523262,
+      "i": 1
+    }
+  }
+}
