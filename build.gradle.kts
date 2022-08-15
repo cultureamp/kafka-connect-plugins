@@ -32,6 +32,7 @@ dependencies {
     // Kafka dependencies
     implementation("org.apache.kafka:connect-api:$kafkaVersion")
     implementation("org.apache.kafka:connect-transforms:$kafkaVersion")
+    implementation("org.apache.avro:avro:1.11.1")
 
     // Use the Kotlin test library.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
