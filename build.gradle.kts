@@ -1,5 +1,14 @@
 val kafkaVersion = "3.4.0"
 
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.owasp:dependency-check-gradle:6.4.1.1")
+    }
+}
+
 plugins {
     // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
     id("org.jetbrains.kotlin.jvm") version "1.6.10"
