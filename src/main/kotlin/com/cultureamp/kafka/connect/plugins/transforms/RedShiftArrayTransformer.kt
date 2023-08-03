@@ -3,10 +3,13 @@ package com.cultureamp.kafka.connect.plugins.transforms
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.ConnectRecord
+import org.apache.kafka.connect.data.Field
 import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.transforms.Transformation
 import org.apache.kafka.connect.transforms.util.Requirements
+import org.apache.kafka.connect.transforms.util.SchemaUtil
 import org.slf4j.LoggerFactory
 
 /**
@@ -54,19 +57,28 @@ class RedShiftArrayTransformer<R : ConnectRecord<R>> : Transformation<R> {
         }
     }
 
-    private fun arrayToStringMapping(obj: Any) {
-        when (obj) {
-            is Array<*> -> objectMapper.writeValueAsString(obj)
-            else -> obj
+    private fun updateSchema(field: Field): Schema {
+        if (field.schema().type() == Schema.Type.ARRAY) {
+            return SchemaBuilder.string().build()
         }
+        return field.schema()
     }
 
-    private fun targetPayload(sourceValue: Struct, targetSchema: Schema): Struct {
-
-        targetSchema::class.members.forEach { member -> arrayToStringMapping(member) }
-
-        val targetPayload = Struct(targetSchema)
-
+    private fun targetPayload(sourceValue: Struct, sourceSchema: Schema): Struct {
+        val builder = SchemaUtil.copySchemaBasics(sourceSchema, SchemaBuilder.struct())
+        for (field in sourceSchema.fields()) {
+            builder.field(field.name(), updateSchema(field))
+        }
+        val newSchema = builder.build()
+        val targetPayload = Struct(newSchema)
+        for (field in newSchema.fields()) {
+            val fieldVal = sourceValue.get(field.name())
+            if (field.schema().type() == sourceSchema.field(field.name()).schema().type()) {
+                targetPayload.put(field.name(), fieldVal)
+            } else {
+                targetPayload.put(field.name(), objectMapper.writeValueAsString(fieldVal))
+            }
+        }
         return targetPayload
     }
 
