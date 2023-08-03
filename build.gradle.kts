@@ -1,4 +1,4 @@
-val kafkaVersion = "2.8.1"
+val kafkaVersion = "3.4.0"
 
 plugins {
     // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
@@ -8,7 +8,7 @@ plugins {
     id("org.jmailen.kotlinter") version "3.6.0"
 
     // Vulnerable dependency checker
-    id("org.owasp.dependencycheck") version "6.4.1.1"
+    id("org.owasp.dependencycheck") version "8.3.1"
 
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
@@ -47,9 +47,29 @@ dependencies {
     implementation("org.mongodb:bson:4.5.1")
 }
 
-// A full list of config options can be found here:
-// https://jeremylong.github.io/DependencyCheck/dependency-check-gradle/configuration.html
+tasks.register("installDotnetSix") {
+    println("📥 Installing Dotnet 6.0...")
+    doLast {
+        exec {
+            workingDir("${buildDir}/..")
+            executable("./dotnet-install.sh")
+            args("--channel", "6.0", "--runtime", "aspnetcore")
+        }
+        // exec {
+        //     workDir("${buildDir}") ("PATH=$PATH:$DOTNET_ROOT")
+        // }
+        println("🚀 Dotnet 6.0 installed!")
+    }
+}
+
+tasks.named("build") {
+    dependsOn("installDotnetSix")
+}
+
+//A full list of config options can be found here:
+//https://jeremylong.github.io/DependencyCheck/dependency-check-gradle/configuration.html
 dependencyCheck {
     // anything over a 5.0 is above a 'warning'
     failBuildOnCVSS = 5.0F
 }
+
