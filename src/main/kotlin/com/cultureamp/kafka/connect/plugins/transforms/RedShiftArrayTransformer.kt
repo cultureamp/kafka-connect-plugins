@@ -7,10 +7,12 @@ import org.apache.kafka.connect.data.Field
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.json.JsonConverter
 import org.apache.kafka.connect.transforms.Transformation
 import org.apache.kafka.connect.transforms.util.Requirements
 import org.apache.kafka.connect.transforms.util.SchemaUtil
 import org.slf4j.LoggerFactory
+import java.util.Collections
 
 /**
  * A generic custom transform for RedShift
@@ -46,7 +48,7 @@ class RedShiftArrayTransformer<R : ConnectRecord<R>> : Transformation<R> {
                 record.kafkaPartition(),
                 record.keySchema(),
                 record.key(),
-                record.valueSchema(),
+                targetPayload.schema(),
                 targetPayload,
                 record.timestamp()
             )
@@ -65,6 +67,8 @@ class RedShiftArrayTransformer<R : ConnectRecord<R>> : Transformation<R> {
     }
 
     private fun targetPayload(sourceValue: Struct, sourceSchema: Schema): Struct {
+        val props = Collections.singletonMap("schemas.enable", false)
+        jsonConverter.configure(props, true)
         val builder = SchemaUtil.copySchemaBasics(sourceSchema, SchemaBuilder.struct())
         for (field in sourceSchema.fields()) {
             builder.field(field.name(), updateSchema(field))
@@ -73,14 +77,19 @@ class RedShiftArrayTransformer<R : ConnectRecord<R>> : Transformation<R> {
         val targetPayload = Struct(newSchema)
         for (field in newSchema.fields()) {
             val fieldVal = sourceValue.get(field.name())
-            if (field.schema().type() == sourceSchema.field(field.name()).schema().type()) {
+            val fieldSchema = sourceSchema.field(field.name()).schema()
+            if (field.schema().type() == fieldSchema.type()) {
                 targetPayload.put(field.name(), fieldVal)
             } else {
-                targetPayload.put(field.name(), objectMapper.writeValueAsString(fieldVal))
+                val converted = jsonConverter.fromConnectData("", fieldSchema, fieldVal)
+                var fieldString = objectMapper.readTree(converted).toString()
+                fieldString = fieldString.replace("\"[", "[").replace("]\"", "]").replace("\"{", "{").replace("}\"", "}")
+                targetPayload.put(field.name(), fieldString)
             }
         }
         return targetPayload
     }
 
     private val objectMapper = ObjectMapper()
+    private val jsonConverter = JsonConverter()
 }

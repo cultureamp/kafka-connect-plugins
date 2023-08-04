@@ -6,6 +6,7 @@ import com.mongodb.kafka.connect.source.schema.AvroSchema
 import com.mongodb.kafka.connect.source.schema.BsonValueToSchemaAndValue
 import com.mongodb.kafka.connect.util.ClassHelper
 import com.mongodb.kafka.connect.util.ConfigHelper
+import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaAndValue
 import org.apache.kafka.connect.source.SourceRecord
 import org.junit.Before
@@ -32,14 +33,15 @@ class RedShiftArrayTransformerTest {
 
     private lateinit var transformer: RedShiftArrayTransformer<SourceRecord>
 
-    private fun hasNoArrays(obj: Any): Boolean {
-        var hasArray = false
-        obj::class.members.forEach { member ->
-            when {
-                member is Array<*> -> hasArray = true
+    private fun hasNoArrays(obj: SourceRecord): Boolean {
+
+        var hasNoArray = true
+        for (field in obj.valueSchema().fields()) {
+            if (field.schema().type() == Schema.Type.ARRAY) {
+                hasNoArray = false
             }
         }
-        return hasArray
+        return hasNoArray
     }
 
     @Before
@@ -60,9 +62,9 @@ class RedShiftArrayTransformerTest {
         )
 
         val transformedRecord = transformer.apply(sourceRecord)
-        System.out.println(sourceRecord)
-        System.out.println(transformedRecord)
-
+        // System.out.println(sourceRecord)
+        // System.out.println(transformedRecord)
+        hasNoArrays(sourceRecord)
         assertTrue(hasNoArrays(transformedRecord))
     }
 

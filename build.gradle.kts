@@ -31,6 +31,7 @@ dependencies {
 
     // Kafka dependencies
     implementation("org.apache.kafka:connect-api:$kafkaVersion")
+    implementation("org.apache.kafka:connect-json:$kafkaVersion")
     implementation("org.apache.kafka:connect-transforms:$kafkaVersion")
     implementation("org.apache.avro:avro:1.11.1")
 

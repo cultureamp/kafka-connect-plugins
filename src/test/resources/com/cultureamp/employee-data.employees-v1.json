@@ -39,7 +39,7 @@
 		},
 		"service": "Influx"
 	},
-	"demographic_value_assignments": [
+	"test_array_of_structs": [
 		{
 			"demographic_id": {
 				"string": "5c579970-684e-4911-a077-6bf407fb478d"
@@ -56,5 +56,13 @@
 				"string": "ecc0db2e-486e-4f4a-a54a-db21673e1a2b"
 			}
 		}
+	],
+	"test_string_array": [
+		"a", "b", "c"
+	],
+	"test_array_of_arrays": [
+		["a", "b", "c"],
+		["e"],
+		["f", "g"]
 	]
 }

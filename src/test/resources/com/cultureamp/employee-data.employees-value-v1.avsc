@@ -214,7 +214,7 @@
       }
     },
     {
-      "name": "demographic_value_assignments",
+      "name": "test_array_of_structs",
       "type": {
         "type": "array",
         "items": {
@@ -243,6 +243,28 @@
           ]
         }
       }
+    },
+    {
+      "name": "test_string_array",
+      "type": [
+        "null",
+        {
+          "type": "array",
+          "items": "string"
+        }
+      ],
+      "default": null
+    },
+    {
+      "name": "test_array_of_arrays",
+      "type": [
+        "null",
+          {
+          "type" : "array",
+          "items" : "string"
+        }
+      ],
+      "default": null
     }
   ]
 }
