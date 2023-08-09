@@ -53,11 +53,8 @@ tasks.register("installDotnetSix") {
         exec {
             workingDir("${buildDir}/..")
             executable("./dotnet-install.sh")
-            args("--channel", "6.0", "--runtime", "aspnetcore")
+            args("--channel", "6.0", "--runtime", "aspnetcore", "--install-dir", "${buildDir}")
         }
-        // exec {
-        //     workDir("${buildDir}") ("PATH=$PATH:$DOTNET_ROOT")
-        // }
         println("🚀 Dotnet 6.0 installed!")
     }
 }
