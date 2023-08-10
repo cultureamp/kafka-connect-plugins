@@ -58,26 +58,11 @@ dependencies {
     implementation("org.mongodb:bson:4.5.1")
 }
 
-tasks.register("installDotnetSix") {
-    println("📥 Installing Dotnet 6.0...")
-    doLast {
-        exec {
-            workingDir("${buildDir}/..")
-            executable("./dotnet-install.sh")
-            args("--channel", "6.0", "--runtime", "aspnetcore", "--install-dir", "${buildDir}")
-        }
-        println("🚀 Dotnet 6.0 installed!")
-    }
-}
-
-tasks.named("build") {
-    dependsOn("installDotnetSix")
-}
-
 //A full list of config options can be found here:
 //https://jeremylong.github.io/DependencyCheck/dependency-check-gradle/configuration.html
 dependencyCheck {
     // anything over a 5.0 is above a 'warning'
     failBuildOnCVSS = 5.0F
+    analyzers.assemblyEnabled = false
 }
 
