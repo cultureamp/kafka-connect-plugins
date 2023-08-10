@@ -1,4 +1,4 @@
-val kafkaVersion = "2.8.1"
+val kafkaVersion = "3.4.0"
 
 plugins {
     // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
@@ -8,7 +8,7 @@ plugins {
     id("org.jmailen.kotlinter") version "3.6.0"
 
     // Vulnerable dependency checker
-    id("org.owasp.dependencycheck") version "6.4.1.1"
+    id("org.owasp.dependencycheck") version "8.3.1"
 
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
@@ -42,14 +42,27 @@ dependencies {
 
     implementation("ch.qos.logback:logback-classic:1.2.11")
     implementation("ch.qos.logback:logback-core:1.2.11")
+
+    // Upgraded version of Jackson Databind to patch:
+    // CVE-2022-42003 - https://github.com/advisories/GHSA-jjjh-jjxp-wpff
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.13.4.2")
+
+    // Upgraded version of Snappy Java to patch: 
+    // CVE-2023-34454 - https://github.com/advisories/GHSA-fjpj-2g6w-x25r
+    // CVE-2023-34453 - https://github.com/advisories/GHSA-pqr6-cmr2-h8hf
+    // CVE-2023-34455 - https://github.com/advisories/GHSA-qcwq-55hx-v3vh
+    implementation("org.xerial.snappy:snappy-java:1.1.10.1")
+
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.3")
     implementation("org.mongodb.kafka:mongo-kafka-connect:1.7.0")
     implementation("org.mongodb:bson:4.5.1")
 }
 
-// A full list of config options can be found here:
-// https://jeremylong.github.io/DependencyCheck/dependency-check-gradle/configuration.html
+//A full list of config options can be found here:
+//https://jeremylong.github.io/DependencyCheck/dependency-check-gradle/configuration.html
 dependencyCheck {
     // anything over a 5.0 is above a 'warning'
     failBuildOnCVSS = 5.0F
+    analyzers.assemblyEnabled = false
 }
+
