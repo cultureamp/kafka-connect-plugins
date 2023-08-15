@@ -62,8 +62,6 @@ class RedShiftArrayTransformerTest {
         )
 
         val transformedRecord = transformer.apply(sourceRecord)
-        // System.out.println(sourceRecord)
-        // System.out.println(transformedRecord)
         hasNoArrays(sourceRecord)
         assertTrue(hasNoArrays(transformedRecord))
     }
