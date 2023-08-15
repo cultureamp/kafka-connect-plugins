@@ -15,7 +15,7 @@ plugins {
 }
 
 // Package version
-version = "0.5.0"
+version = "0.6.0"
 
 repositories {
     // Use Maven Central for resolving dependencies.
@@ -31,6 +31,7 @@ dependencies {
 
     // Kafka dependencies
     implementation("org.apache.kafka:connect-api:$kafkaVersion")
+    implementation("org.apache.kafka:connect-json:$kafkaVersion")
     implementation("org.apache.kafka:connect-transforms:$kafkaVersion")
     implementation("org.apache.avro:avro:1.11.1")
 
