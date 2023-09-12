@@ -57,6 +57,15 @@
 			}
 		}
 	],
+	"test_map": {
+		"added_users_count": 0,
+		"ignored_new_demographics_count": 0,
+		"ignored_users_count": 0,
+		"inactive_updated_users_count": 0,
+		"reactivated_users_count": 0,
+		"removed_users_count": 0,
+		"updated_users_count": 0
+	},
 	"test_string_array": [
 		"a", "b", "c"
 	],

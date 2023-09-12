@@ -265,6 +265,17 @@
         }
       ],
       "default": null
+    },
+    {
+      "name": "test_map",
+      "type": [
+        "null",
+        {
+          "type": "map",
+          "values": "int"
+        }
+      ],
+      "default": null
     }
   ]
 }

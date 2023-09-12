@@ -26,27 +26,27 @@ import kotlin.test.assertTrue
  * See https://docs.confluent.io/platform/current/connect/javadocs/javadoc/org/apache/kafka/connect/transforms/Transformation.html.
  *
  * @param R is ConnectRecord<R>.
- * @constructor Creates a RedShiftArrayTransformer Transformation<R> for a given ConnectRecord<T>
+ * @constructor Creates a RedShiftComplexDataTypeTransformer Transformation<R> for a given ConnectRecord<T>
  *
  */
-class RedShiftArrayTransformerTest {
+class RedShiftComplexDataTypeTransformerTest {
 
-    private lateinit var transformer: RedShiftArrayTransformer<SourceRecord>
+    private lateinit var transformer: RedShiftComplexDataTypeTransformer<SourceRecord>
 
-    private fun hasNoArrays(obj: SourceRecord): Boolean {
+    private fun hasNoComplexTypes(obj: SourceRecord): Boolean {
 
-        var hasNoArray = true
+        var hasNoComplexTypes = true
         for (field in obj.valueSchema().fields()) {
-            if (field.schema().type() == Schema.Type.ARRAY) {
-                hasNoArray = false
+            if (field.schema().type() == Schema.Type.ARRAY || field.schema().type() == Schema.Type.MAP) {
+                hasNoComplexTypes = false
             }
         }
-        return hasNoArray
+        return hasNoComplexTypes
     }
 
     @Before
     fun setUp() {
-        transformer = RedShiftArrayTransformer()
+        transformer = RedShiftComplexDataTypeTransformer()
     }
 
     @Test
@@ -62,8 +62,8 @@ class RedShiftArrayTransformerTest {
         )
 
         val transformedRecord = transformer.apply(sourceRecord)
-        hasNoArrays(sourceRecord)
-        assertTrue(hasNoArrays(transformedRecord))
+        hasNoComplexTypes(sourceRecord)
+        assertTrue(hasNoComplexTypes(transformedRecord))
     }
 
     private val sourceSchema = AvroSchema.fromJson(fileContent("com/cultureamp/employee-data.employees-value-v1.avsc"))

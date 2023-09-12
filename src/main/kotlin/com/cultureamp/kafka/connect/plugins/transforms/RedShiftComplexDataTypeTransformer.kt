@@ -26,7 +26,7 @@ import java.util.Collections
  * @param R is ConnectRecord<R>.
  * @constructor Creates a RedShiftArrayTransformer Transformation<R> for a given ConnectRecord<T>
  */
-class RedShiftArrayTransformer<R : ConnectRecord<R>> : Transformation<R> {
+class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<R> {
     private val logger = LoggerFactory.getLogger(this::class.java.canonicalName)
     private val purpose = "RedShift™ JSON Array to String Transform"
 
@@ -60,7 +60,7 @@ class RedShiftArrayTransformer<R : ConnectRecord<R>> : Transformation<R> {
     }
 
     private fun updateSchema(field: Field): Schema {
-        if (field.schema().type() == Schema.Type.ARRAY) {
+        if (field.schema().type() == Schema.Type.ARRAY || field.schema().type() == Schema.Type.MAP) {
             return SchemaBuilder.string().build()
         }
         return field.schema()
