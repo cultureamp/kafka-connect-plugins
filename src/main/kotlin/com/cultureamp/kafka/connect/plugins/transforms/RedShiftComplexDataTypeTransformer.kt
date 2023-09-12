@@ -24,7 +24,7 @@ import java.util.Collections
  * See https://docs.confluent.io/platform/current/connect/javadocs/javadoc/org/apache/kafka/connect/transforms/Transformation.html.
  *
  * @param R is ConnectRecord<R>.
- * @constructor Creates a RedShiftArrayTransformer Transformation<R> for a given ConnectRecord<T>
+ * @constructor Creates a RedShiftComplexDataTypeTransformer Transformation<R> for a given ConnectRecord<T>
  */
 class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<R> {
     private val logger = LoggerFactory.getLogger(this::class.java.canonicalName)
