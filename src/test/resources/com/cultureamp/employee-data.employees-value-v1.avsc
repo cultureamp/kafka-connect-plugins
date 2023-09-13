@@ -110,6 +110,17 @@
             }
           },
           {
+            "name": "test_map_1",
+            "type": [
+              "null",
+              {
+                "type": "map",
+                "values": "int"
+              }
+            ],
+            "default": null
+          },
+          {
             "name": "test_array_of_structs",
             "type": {
               "type": "array",

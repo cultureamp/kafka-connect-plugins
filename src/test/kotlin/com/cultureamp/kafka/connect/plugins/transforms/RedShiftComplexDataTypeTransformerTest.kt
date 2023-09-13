@@ -62,6 +62,7 @@ class RedShiftComplexDataTypeTransformerTest {
         )
 
         val transformedRecord = transformer.apply(sourceRecord)
+        println(transformedRecord)
         hasNoComplexTypes(sourceRecord)
         assertTrue(hasNoComplexTypes(transformedRecord))
     }
