@@ -1,12 +1,15 @@
 package com.cultureamp.kafka.connect.plugins.transforms
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.apache.kafka.common.cache.LRUCache
+import org.apache.kafka.common.cache.SynchronizedCache
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.ConnectRecord
 import org.apache.kafka.connect.data.Field
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.errors.DataException
 import org.apache.kafka.connect.json.JsonConverter
 import org.apache.kafka.connect.transforms.Transformation
 import org.apache.kafka.connect.transforms.util.Requirements
@@ -28,7 +31,8 @@ import java.util.Collections
  */
 class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<R> {
     private val logger = LoggerFactory.getLogger(this::class.java.canonicalName)
-    private val purpose = "RedShift™ JSON Array to String Transform"
+    private val purpose = "RedShift™ Flatten and Complex Data Types to String Transform"
+    private val schemaUpdateCache = SynchronizedCache<Schema, Schema>(LRUCache<Schema, Schema>(16))
 
     override fun configure(configs: MutableMap<String, *>?) {}
 
@@ -40,23 +44,24 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
 
     override fun apply(record: R): R {
         try {
-            val sourceValue = Requirements.requireStruct(record.value(), purpose)
-            val targetPayload = targetPayload(sourceValue, record.valueSchema())
-
-            return record.newRecord(
-                record.topic(),
-                record.kafkaPartition(),
-                record.keySchema(),
-                record.key(),
-                targetPayload.schema(),
-                targetPayload,
-                record.timestamp()
-            )
+            return targetPayload(record)
         } catch (e: Exception) {
             logger.error("Exception: ", e)
             logger.error("Record Received: " + record.value())
             throw e
         }
+    }
+
+    private fun newRecord(record: R, schema: Schema, value: Struct): R {
+        return record.newRecord(
+            record.topic(),
+            record.kafkaPartition(),
+            record.keySchema(),
+            record.key(),
+            schema,
+            value,
+            record.timestamp()
+        )
     }
 
     private fun updateSchema(field: Field): Schema {
@@ -66,10 +71,119 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
         return field.schema()
     }
 
-    private fun targetPayload(sourceValue: Struct, sourceSchema: Schema): Struct {
+    private fun fieldName(prefix: String, fieldName: String): String {
+        if (prefix.isEmpty()) {
+            return fieldName
+        } else {
+            return (prefix + '_' + fieldName)
+        }
+    }
+
+    private fun convertFieldSchema(orig: Schema, optional: Boolean, defaultFromParent: Any?): Schema {
+        // Note that we don't use the schema translation cache here. It might save us a bit of effort, but we really
+        // only care about caching top-level schema translations.
+        val builder = SchemaUtil.copySchemaBasics(orig)
+        if (optional)
+            builder.optional()
+        if (defaultFromParent != null)
+            builder.defaultValue(defaultFromParent)
+        return builder.build()
+    }
+
+    private fun buildUpdatedSchema(schema: Schema, fieldNamePrefix: String, newSchema: SchemaBuilder, optional: Boolean) {
+        for (field in schema.fields()) {
+            val fieldName = fieldName(fieldNamePrefix, field.name())
+            val fieldIsOptional = optional || field.schema().isOptional()
+            val fieldDefaultValue = if (field.schema().defaultValue() != null) {
+                field.schema().defaultValue() as Struct
+            } else if (schema.defaultValue() != null) {
+                val checkParent = schema.defaultValue() as Struct
+                checkParent.get(field)
+            } else {
+                null
+            }
+            when (field.schema().type()) {
+                Schema.Type.INT8 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), fieldIsOptional, fieldDefaultValue))
+                Schema.Type.INT16 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), fieldIsOptional, fieldDefaultValue))
+                Schema.Type.INT32 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), fieldIsOptional, fieldDefaultValue))
+                Schema.Type.INT64 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), fieldIsOptional, fieldDefaultValue))
+                Schema.Type.FLOAT32 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), fieldIsOptional, fieldDefaultValue))
+                Schema.Type.FLOAT64 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), fieldIsOptional, fieldDefaultValue))
+                Schema.Type.BOOLEAN -> newSchema.field(fieldName, convertFieldSchema(field.schema(), fieldIsOptional, fieldDefaultValue))
+                Schema.Type.STRING -> newSchema.field(fieldName, convertFieldSchema(field.schema(), fieldIsOptional, fieldDefaultValue))
+                Schema.Type.BYTES -> newSchema.field(fieldName, convertFieldSchema(field.schema(), fieldIsOptional, fieldDefaultValue))
+                Schema.Type.ARRAY -> newSchema.field(fieldName, convertFieldSchema(SchemaBuilder.string().build(), fieldIsOptional, fieldDefaultValue))
+                Schema.Type.MAP -> newSchema.field(fieldName, convertFieldSchema(SchemaBuilder.string().build(), fieldIsOptional, fieldDefaultValue))
+                Schema.Type.STRUCT -> buildUpdatedSchema(field.schema(), fieldName, newSchema, fieldIsOptional)
+                else -> throw DataException(
+                    "Flatten transformation does not support " + field.schema().type() +
+                        " for record with schemas (for field " + fieldName + ")."
+                )
+            }
+        }
+    }
+
+    private fun convertToString(schema: Schema, value: Any): String {
+        val converted = jsonConverter.fromConnectData("", schema, value)
+        var fieldString = objectMapper.readTree(converted).toString()
+        return fieldString.replace("\"[", "[").replace("]\"", "]").replace("\"{", "{").replace("}\"", "}")
+    }
+
+    private fun buildWithSchema(sourceRecord: Any?, fieldNamePrefix: String, newRecord: Struct) {
+        if (sourceRecord == null) {
+            return
+        }
+        val record = sourceRecord as Struct
+
+        if (record.schema() == null) {
+            return
+        }
+
+        for (field in record.schema().fields()) {
+            val fieldName = fieldName(fieldNamePrefix, field.name())
+            when (field.schema().type()) {
+                Schema.Type.INT8 -> newRecord.put(fieldName, record.get(field))
+                Schema.Type.INT16 -> newRecord.put(fieldName, record.get(field))
+                Schema.Type.INT32 -> newRecord.put(fieldName, record.get(field))
+                Schema.Type.INT64 -> newRecord.put(fieldName, record.get(field))
+                Schema.Type.FLOAT32 -> newRecord.put(fieldName, record.get(field))
+                Schema.Type.FLOAT64 -> newRecord.put(fieldName, record.get(field))
+                Schema.Type.BOOLEAN -> newRecord.put(fieldName, record.get(field))
+                Schema.Type.STRING -> newRecord.put(fieldName, record.get(field))
+                Schema.Type.BYTES -> newRecord.put(fieldName, record.get(field))
+                Schema.Type.ARRAY -> newRecord.put(fieldName, convertToString(field.schema(), record.get(field)))
+                Schema.Type.MAP -> newRecord.put(fieldName, convertToString(field.schema(), record.get(field)))
+                Schema.Type.STRUCT -> buildWithSchema(record.getStruct(field.name()), fieldName, newRecord)
+                else -> throw DataException(
+                    "Flatten transformation does not support " + field.schema().type() +
+                        " for record with schemas (for field " + fieldName + ")."
+                )
+            }
+        }
+    }
+
+    private fun targetPayload(record: R): R {
+        val sourceValue = Requirements.requireStruct(record.value(), purpose)
+        val sourceSchema = record.valueSchema()
+        var updatedSchema = schemaUpdateCache.get(sourceSchema)
         val props = Collections.singletonMap("schemas.enable", false)
         jsonConverter.configure(props, true)
-        val builder = SchemaUtil.copySchemaBasics(sourceSchema, SchemaBuilder.struct())
+        if (updatedSchema == null) {
+            val builder = SchemaUtil.copySchemaBasics(sourceSchema, SchemaBuilder.struct())
+            buildUpdatedSchema(sourceSchema, "", builder, sourceSchema.isOptional())
+            updatedSchema = builder.build()
+            schemaUpdateCache.put(sourceSchema, updatedSchema)
+        }
+        if (sourceValue == null) {
+            return newRecord(record, updatedSchema, Struct(null))
+        } else {
+            val updatedValue = Struct(updatedSchema)
+            print(sourceValue)
+            buildWithSchema(sourceValue, "", updatedValue)
+            return newRecord(record, updatedSchema, updatedValue)
+        }
+
+        /*val builder = SchemaUtil.copySchemaBasics(sourceSchema, SchemaBuilder.struct())
         for (field in sourceSchema.fields()) {
             builder.field(field.name(), updateSchema(field))
         }
@@ -81,13 +195,13 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
             if (field.schema().type() == fieldSchema.type()) {
                 targetPayload.put(field.name(), fieldVal)
             } else {
-                val converted = jsonConverter.fromConnectData("", fieldSchema, fieldVal)
-                var fieldString = objectMapper.readTree(converted).toString()
-                fieldString = fieldString.replace("\"[", "[").replace("]\"", "]").replace("\"{", "{").replace("}\"", "}")
+                //val converted = jsonConverter.fromConnectData("", fieldSchema, fieldVal)
+                //var fieldString = objectMapper.readTree(converted).toString()
+                val fieldString = convertToString(fieldSchema, fieldVal)
                 targetPayload.put(field.name(), fieldString)
             }
         }
-        return targetPayload
+        return newRecord(record, targetPayload.schema(), targetPayload)*/
     }
 
     private val objectMapper = ObjectMapper()
