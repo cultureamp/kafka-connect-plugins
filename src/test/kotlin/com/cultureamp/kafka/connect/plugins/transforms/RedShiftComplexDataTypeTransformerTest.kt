@@ -37,7 +37,7 @@ class RedShiftComplexDataTypeTransformerTest {
 
         var hasNoComplexTypes = true
         for (field in obj.valueSchema().fields()) {
-            if (field.schema().type() == Schema.Type.ARRAY || field.schema().type() == Schema.Type.MAP) {
+            if (field.schema().type() == Schema.Type.ARRAY || field.schema().type() == Schema.Type.MAP || field.schema().type() == Schema.Type.STRUCT) {
                 hasNoComplexTypes = false
             }
         }

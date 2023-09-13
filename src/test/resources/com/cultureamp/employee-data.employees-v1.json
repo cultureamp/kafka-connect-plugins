@@ -23,7 +23,41 @@
 		"locale": null,
 		"observer": false,
 		"gdpr_erasure_request_id": null,
-		"manager_assignment": null,
+		"manager_assignment": {
+			"manager_id": {
+				"string": "5c579970-684e-4911-a077-6bf407fb478d"
+			},
+			"demographic_id": {
+				"string": "427b936f-e932-4673-95a2-acd3e3b900b1"
+			}
+		},
+		"test_array_of_structs": [
+			{
+				"demographic_id": {
+					"string": "5c579970-684e-4911-a077-6bf407fb478d"
+				},
+				"demographic_value_id": {
+					"string": "427b936f-e932-4673-95a2-acd3e3b900b1"
+				}
+			},
+			{
+				"demographic_id": {
+					"string": "460f6b2d-03c5-46cf-ba55-aa14477a12dc"
+				},
+				"demographic_value_id": {
+					"string": "ecc0db2e-486e-4f4a-a54a-db21673e1a2b"
+				}
+			}
+		],
+		"test_map": {
+			"added_users_count": 0,
+			"ignored_new_demographics_count": 0,
+			"ignored_users_count": 0,
+			"inactive_updated_users_count": 0,
+			"reactivated_users_count": 0,
+			"removed_users_count": 0,
+			"updated_users_count": 0
+		},
 		"erased": false,
         "created_at": 1536899741113,
 		"updated_at": 1536899741117,

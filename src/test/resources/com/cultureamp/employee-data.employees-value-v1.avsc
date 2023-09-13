@@ -103,6 +103,44 @@
             "default": null
           },
           {
+            "name": "test_map",
+            "type": {
+              "type": "map",
+              "values": "string"
+            }
+          },
+          {
+            "name": "test_array_of_structs",
+            "type": {
+              "type": "array",
+              "items": {
+                "type": "record",
+                "name": "DemographicValueAssignmentTest",
+                "namespace": "com.cultureamp.employee.v1",
+                "fields": [
+                  {
+                    "name": "demographic_id",
+                    "type": {
+                      "type": "string",
+                      "logicalType": "uuid"
+                    }
+                  },
+                  {
+                    "name": "demographic_value_id",
+                    "type": [
+                      "null",
+                      {
+                        "type": "string",
+                        "logicalType": "uuid"
+                      }
+                    ],
+                    "default": null
+                  }
+                ]
+              }
+            }
+          },
+          {
             "name": "manager_assignment",
             "type": [
               "null",
