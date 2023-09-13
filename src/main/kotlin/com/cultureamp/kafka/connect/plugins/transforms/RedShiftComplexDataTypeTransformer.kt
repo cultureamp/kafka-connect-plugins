@@ -5,7 +5,6 @@ import org.apache.kafka.common.cache.LRUCache
 import org.apache.kafka.common.cache.SynchronizedCache
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.ConnectRecord
-import org.apache.kafka.connect.data.Field
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
@@ -62,13 +61,6 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
             value,
             record.timestamp()
         )
-    }
-
-    private fun updateSchema(field: Field): Schema {
-        if (field.schema().type() == Schema.Type.ARRAY || field.schema().type() == Schema.Type.MAP) {
-            return SchemaBuilder.string().build()
-        }
-        return field.schema()
     }
 
     private fun fieldName(prefix: String, fieldName: String): String {
@@ -182,26 +174,6 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
             buildWithSchema(sourceValue, "", updatedValue)
             return newRecord(record, updatedSchema, updatedValue)
         }
-
-        /*val builder = SchemaUtil.copySchemaBasics(sourceSchema, SchemaBuilder.struct())
-        for (field in sourceSchema.fields()) {
-            builder.field(field.name(), updateSchema(field))
-        }
-        val newSchema = builder.build()
-        val targetPayload = Struct(newSchema)
-        for (field in newSchema.fields()) {
-            val fieldVal = sourceValue.get(field.name())
-            val fieldSchema = sourceSchema.field(field.name()).schema()
-            if (field.schema().type() == fieldSchema.type()) {
-                targetPayload.put(field.name(), fieldVal)
-            } else {
-                //val converted = jsonConverter.fromConnectData("", fieldSchema, fieldVal)
-                //var fieldString = objectMapper.readTree(converted).toString()
-                val fieldString = convertToString(fieldSchema, fieldVal)
-                targetPayload.put(field.name(), fieldString)
-            }
-        }
-        return newRecord(record, targetPayload.schema(), targetPayload)*/
     }
 
     private val objectMapper = ObjectMapper()
