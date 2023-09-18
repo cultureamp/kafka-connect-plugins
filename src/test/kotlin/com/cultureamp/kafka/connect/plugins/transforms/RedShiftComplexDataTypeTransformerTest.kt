@@ -126,6 +126,23 @@ class RedShiftComplexDataTypeTransformerTest {
         assertTrue(hasNoComplexTypes(transformedRecord))
     }
 
+    @Test
+    fun `can transform ECST Employee data with tombstone message and null key and null value schema`() {
+        val sourceRecord = SourceRecord(
+            null,
+            null,
+            "employee data ecst test",
+            null,
+            null,
+            null,
+            null,
+            null
+        )
+
+        val transformedRecord = transformer.apply(sourceRecord)
+        assertTrue(hasNoComplexTypes(transformedRecord))
+    }
+
     private val sourceSchema = AvroSchema.fromJson(fileContent("com/cultureamp/employee-data.employees-value-v1.avsc"))
 
     private fun payload(fileName: String): SchemaAndValue {

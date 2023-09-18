@@ -171,8 +171,11 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
         val props = Collections.singletonMap("schemas.enable", false)
         jsonConverter.configure(props, true)
         if (updatedSchema == null) {
-            val builder = SchemaUtil.copySchemaBasics(sourceSchema, SchemaBuilder.struct())
-            buildUpdatedSchema(sourceSchema, "", builder, sourceSchema.isOptional())
+            var builder: SchemaBuilder = SchemaUtil.copySchemaBasics(SchemaBuilder.struct())
+            if (sourceSchema != null) {
+                builder = SchemaUtil.copySchemaBasics(sourceSchema, SchemaBuilder.struct())
+                buildUpdatedSchema(sourceSchema, "", builder, sourceSchema.isOptional())
+            }
 
             if (record.keySchema() != null) {
                 builder.field("topic_key", record.keySchema())
