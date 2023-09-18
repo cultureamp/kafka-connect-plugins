@@ -85,7 +85,6 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
     private fun buildUpdatedSchema(schema: Schema, fieldNamePrefix: String, newSchema: SchemaBuilder, optional: Boolean) {
         for (field in schema.fields()) {
             val fieldName = fieldName(fieldNamePrefix, field.name())
-            val fieldIsOptional = optional || field.schema().isOptional()
             val fieldDefaultValue = if (field.schema().defaultValue() != null) {
                 field.schema().defaultValue() as Struct
             } else if (schema.defaultValue() != null) {
@@ -95,18 +94,18 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
                 null
             }
             when (field.schema().type()) {
-                Schema.Type.INT8 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), fieldIsOptional, fieldDefaultValue))
-                Schema.Type.INT16 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), fieldIsOptional, fieldDefaultValue))
-                Schema.Type.INT32 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), fieldIsOptional, fieldDefaultValue))
-                Schema.Type.INT64 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), fieldIsOptional, fieldDefaultValue))
-                Schema.Type.FLOAT32 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), fieldIsOptional, fieldDefaultValue))
-                Schema.Type.FLOAT64 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), fieldIsOptional, fieldDefaultValue))
-                Schema.Type.BOOLEAN -> newSchema.field(fieldName, convertFieldSchema(field.schema(), fieldIsOptional, fieldDefaultValue))
-                Schema.Type.STRING -> newSchema.field(fieldName, convertFieldSchema(field.schema(), fieldIsOptional, fieldDefaultValue))
-                Schema.Type.BYTES -> newSchema.field(fieldName, convertFieldSchema(field.schema(), fieldIsOptional, fieldDefaultValue))
-                Schema.Type.ARRAY -> newSchema.field(fieldName, convertFieldSchema(SchemaBuilder.string().build(), fieldIsOptional, fieldDefaultValue))
-                Schema.Type.MAP -> newSchema.field(fieldName, convertFieldSchema(SchemaBuilder.string().build(), fieldIsOptional, fieldDefaultValue))
-                Schema.Type.STRUCT -> buildUpdatedSchema(field.schema(), fieldName, newSchema, fieldIsOptional)
+                Schema.Type.INT8 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), optional, fieldDefaultValue))
+                Schema.Type.INT16 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), optional, fieldDefaultValue))
+                Schema.Type.INT32 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), optional, fieldDefaultValue))
+                Schema.Type.INT64 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), optional, fieldDefaultValue))
+                Schema.Type.FLOAT32 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), optional, fieldDefaultValue))
+                Schema.Type.FLOAT64 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), optional, fieldDefaultValue))
+                Schema.Type.BOOLEAN -> newSchema.field(fieldName, convertFieldSchema(field.schema(), optional, fieldDefaultValue))
+                Schema.Type.STRING -> newSchema.field(fieldName, convertFieldSchema(field.schema(), optional, fieldDefaultValue))
+                Schema.Type.BYTES -> newSchema.field(fieldName, convertFieldSchema(field.schema(), optional, fieldDefaultValue))
+                Schema.Type.ARRAY -> newSchema.field(fieldName, convertFieldSchema(SchemaBuilder.string().build(), optional, fieldDefaultValue))
+                Schema.Type.MAP -> newSchema.field(fieldName, convertFieldSchema(SchemaBuilder.string().build(), optional, fieldDefaultValue))
+                Schema.Type.STRUCT -> buildUpdatedSchema(field.schema(), fieldName, newSchema, optional)
                 else -> throw DataException(
                     "Flatten transformation does not support " + field.schema().type() +
                         " for record with schemas (for field " + fieldName + ")."
@@ -174,19 +173,18 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
             var builder: SchemaBuilder = SchemaUtil.copySchemaBasics(SchemaBuilder.struct())
             if (sourceSchema != null) {
                 builder = SchemaUtil.copySchemaBasics(sourceSchema, SchemaBuilder.struct())
-                buildUpdatedSchema(sourceSchema, "", builder, sourceSchema.isOptional())
+                // fix optional to true to prevent issues with tombstone messages
+                // CREATE TABLE queries should be created with other fields as NULL except for record key and tombstone as false
+                buildUpdatedSchema(sourceSchema, "", builder, true)
             }
-
-            if (record.keySchema() != null) {
-                builder.field("topic_key", record.keySchema())
-            }
+            builder.field("topic_key", convertFieldSchema(SchemaBuilder.string().build(), false, ""))
             builder.field("tombstone", convertFieldSchema(SchemaBuilder.bool().build(), false, false))
             updatedSchema = builder.build()
             schemaUpdateCache.put(sourceSchema, updatedSchema)
         }
         val updatedValue = Struct(updatedSchema)
-        if (record.keySchema() != null && record.key() != null) {
-            updatedValue.put("topic_key", record.key())
+        if (record.key() != null) {
+            updatedValue.put("topic_key", record.key().toString())
         }
         if (sourceValue != null) {
             updatedValue.put("tombstone", false)
