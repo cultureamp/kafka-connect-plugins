@@ -51,7 +51,7 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
         }
     }
 
-    private fun newRecord(record: R, schema: Schema, value: Struct): R {
+    private fun newRecord(record: R, schema: Schema, value: Struct?): R {
         return record.newRecord(
             record.topic(),
             record.kafkaPartition(),
@@ -165,7 +165,7 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
     }
 
     private fun targetPayload(record: R): R {
-        val sourceValue = Requirements.requireStruct(record.value(), purpose)
+        val sourceValue = Requirements.requireStructOrNull(record.value(), purpose)
         val sourceSchema = record.valueSchema()
         var updatedSchema = schemaUpdateCache.get(sourceSchema)
         val props = Collections.singletonMap("schemas.enable", false)
@@ -173,17 +173,25 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
         if (updatedSchema == null) {
             val builder = SchemaUtil.copySchemaBasics(sourceSchema, SchemaBuilder.struct())
             buildUpdatedSchema(sourceSchema, "", builder, sourceSchema.isOptional())
+
+            if (record.keySchema() != null) {
+                builder.field("topic_key", record.keySchema())
+            }
+            builder.field("tombstone", convertFieldSchema(SchemaBuilder.bool().build(), false, false))
             updatedSchema = builder.build()
             schemaUpdateCache.put(sourceSchema, updatedSchema)
         }
-        if (sourceValue == null) {
-            return newRecord(record, updatedSchema, Struct(null))
-        } else {
-            val updatedValue = Struct(updatedSchema)
-            print(sourceValue)
-            buildWithSchema(sourceValue, "", updatedValue)
-            return newRecord(record, updatedSchema, updatedValue)
+        val updatedValue = Struct(updatedSchema)
+        if (record.keySchema() != null && record.key() != null) {
+            updatedValue.put("topic_key", record.key())
         }
+        if (sourceValue != null) {
+            updatedValue.put("tombstone", false)
+            buildWithSchema(sourceValue, "", updatedValue)
+        } else {
+            updatedValue.put("tombstone", true)
+        }
+        return newRecord(record, updatedSchema, updatedValue)
     }
 
     private val objectMapper = ObjectMapper()

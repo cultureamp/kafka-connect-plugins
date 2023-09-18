@@ -66,6 +66,66 @@ class RedShiftComplexDataTypeTransformerTest {
         assertTrue(hasNoComplexTypes(transformedRecord))
     }
 
+    @Test
+    fun `can transform ECST Employee data that has key as field`() {
+
+        val avroRecord = payload("com/cultureamp/employee-data.employees-v1.json")
+        val sourceRecord = SourceRecord(
+            null,
+            null,
+            "employee data ecst test",
+            null,
+            Schema.STRING_SCHEMA,
+            "hellp",
+            avroRecord.schema(),
+            avroRecord.value()
+        )
+
+        val transformedRecord = transformer.apply(sourceRecord)
+        hasNoComplexTypes(sourceRecord)
+        assertTrue(hasNoComplexTypes(transformedRecord))
+    }
+
+    @Test
+    fun `can transform ECST Employee data with tombstone message and non-null key`() {
+
+        val avroRecord = payload("com/cultureamp/employee-data.employees-v1.json")
+        val sourceRecord = SourceRecord(
+            null,
+            null,
+            "employee data ecst test",
+            null,
+            Schema.STRING_SCHEMA,
+            "hellp",
+            avroRecord.schema(),
+            null
+        )
+
+        val transformedRecord = transformer.apply(sourceRecord)
+        hasNoComplexTypes(sourceRecord)
+        assertTrue(hasNoComplexTypes(transformedRecord))
+    }
+
+    @Test
+    fun `can transform ECST Employee data with tombstone message and null key`() {
+
+        val avroRecord = payload("com/cultureamp/employee-data.employees-v1.json")
+        val sourceRecord = SourceRecord(
+            null,
+            null,
+            "employee data ecst test",
+            null,
+            null,
+            null,
+            avroRecord.schema(),
+            null
+        )
+
+        val transformedRecord = transformer.apply(sourceRecord)
+        hasNoComplexTypes(sourceRecord)
+        assertTrue(hasNoComplexTypes(transformedRecord))
+    }
+
     private val sourceSchema = AvroSchema.fromJson(fileContent("com/cultureamp/employee-data.employees-value-v1.avsc"))
 
     private fun payload(fileName: String): SchemaAndValue {
