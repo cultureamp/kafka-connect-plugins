@@ -189,7 +189,8 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
         if (sourceValue != null) {
             updatedValue.put("tombstone", false)
             buildWithSchema(sourceValue, "", updatedValue)
-        } else {
+        }
+        if (sourceValue == null || sourceValue.get("body") == null) {
             updatedValue.put("tombstone", true)
         }
         return newRecord(record, updatedSchema, updatedValue)
