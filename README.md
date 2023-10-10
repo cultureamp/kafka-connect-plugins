@@ -86,4 +86,6 @@ This will create a jar:
 - `./gradlew lintKotlin` Run Ktlint on all files
 - `./gradlew formatKotlin` Fix any linting violations
 
+### For deployment instructions, please refer to [the deployment guide](DEPLOY.md)
+
 - [1]: https://gradle.org/
