@@ -1,4 +1,4 @@
-val kafkaVersion = "3.4.0"
+val kafkaVersion = "3.6.0"
 
 plugins {
     // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
@@ -12,6 +12,7 @@ plugins {
 
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
+
 }
 
 // Package version
@@ -33,7 +34,7 @@ dependencies {
     implementation("org.apache.kafka:connect-api:$kafkaVersion")
     implementation("org.apache.kafka:connect-json:$kafkaVersion")
     implementation("org.apache.kafka:connect-transforms:$kafkaVersion")
-    implementation("org.apache.avro:avro:1.11.1")
+    implementation("org.apache.avro:avro:1.11.3")
 
     // Use the Kotlin test library.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
@@ -46,13 +47,16 @@ dependencies {
 
     // Upgraded version of Jackson Databind to patch:
     // CVE-2022-42003 - https://github.com/advisories/GHSA-jjjh-jjxp-wpff
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.13.4.2")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
 
     // Upgraded version of Snappy Java to patch: 
     // CVE-2023-34454 - https://github.com/advisories/GHSA-fjpj-2g6w-x25r
     // CVE-2023-34453 - https://github.com/advisories/GHSA-pqr6-cmr2-h8hf
     // CVE-2023-34455 - https://github.com/advisories/GHSA-qcwq-55hx-v3vh
-    implementation("org.xerial.snappy:snappy-java:1.1.10.1")
+    implementation("org.xerial.snappy:snappy-java:1.1.10.5")
+
+    // CVE-2023-42503
+    implementation("org.apache.commons:commons-compress:1.24.0")
 
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.3")
     implementation("org.mongodb.kafka:mongo-kafka-connect:1.7.0")
