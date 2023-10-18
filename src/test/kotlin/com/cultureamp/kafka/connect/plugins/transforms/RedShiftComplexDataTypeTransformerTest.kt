@@ -67,6 +67,23 @@ class RedShiftComplexDataTypeTransformerTest {
     }
 
     @Test
+    fun `can transform ECST Employee data with null body`() {
+
+        val avroRecord = payload("com/cultureamp/employee-data.employees-v2.json")
+        val sourceRecord = SourceRecord(
+            null,
+            null,
+            "employee data ecst test",
+            avroRecord.schema(),
+            avroRecord.value()
+        )
+
+        val transformedRecord = transformer.apply(sourceRecord)
+        hasNoComplexTypes(sourceRecord)
+        assertTrue(hasNoComplexTypes(transformedRecord))
+    }
+
+    @Test
     fun `can transform ECST Employee data that has key as field`() {
 
         val avroRecord = payload("com/cultureamp/employee-data.employees-v1.json")
