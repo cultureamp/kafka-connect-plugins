@@ -126,8 +126,7 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
             realSchema = SchemaBuilder.string().build()
         }
         val converted = jsonConverter.fromConnectData("", realSchema, realValue)
-        var fieldString = objectMapper.readTree(converted).toString()
-        return fieldString.replace("\"[", "[").replace("]\"", "]").replace("\"{", "{").replace("}\"", "}")
+        return objectMapper.writeValueAsString(objectMapper.readTree(converted))
     }
 
     private fun buildWithSchema(sourceRecord: Any?, fieldNamePrefix: String, newRecord: Struct) {
