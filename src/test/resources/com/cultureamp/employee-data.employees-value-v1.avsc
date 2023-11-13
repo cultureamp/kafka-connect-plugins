@@ -310,9 +310,12 @@
       "name": "test_array_of_arrays",
       "type": [
         "null",
-          {
-          "type" : "array",
-          "items" : "string"
+        {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": "string"
+          }
         }
       ],
       "default": null
