@@ -68,11 +68,8 @@ dependencies {
 dependencyCheck {
     // anything over a 5.0 is above a 'warning'
     failBuildOnCVSS = 5.0F
-    analyzers {
-        assemblyEnabled = false
-    }
-    nvd {
-        apiKey = System.getenv("NVD_API_KEY")
-    }
+    analyzers.assemblyEnabled = false
+
+    nvd.apiKey = System.getenv("NVD_API_KEY") ?: ""
 }
 
