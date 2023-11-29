@@ -49,7 +49,7 @@ dependencies {
     // CVE-2022-42003 - https://github.com/advisories/GHSA-jjjh-jjxp-wpff
     implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
 
-    // Upgraded version of Snappy Java to patch: 
+    // Upgraded version of Snappy Java to patch:
     // CVE-2023-34454 - https://github.com/advisories/GHSA-fjpj-2g6w-x25r
     // CVE-2023-34453 - https://github.com/advisories/GHSA-pqr6-cmr2-h8hf
     // CVE-2023-34455 - https://github.com/advisories/GHSA-qcwq-55hx-v3vh
@@ -68,6 +68,11 @@ dependencies {
 dependencyCheck {
     // anything over a 5.0 is above a 'warning'
     failBuildOnCVSS = 5.0F
-    analyzers.assemblyEnabled = false
+    analyzers {
+        assemblyEnabled = false
+    }
+    nvd {
+        apiKey = System.getenv("NVD_API_KEY")
+    }
 }
 
