@@ -47,7 +47,7 @@ dependencies {
 
     // Upgraded version of Jackson Databind to patch:
     // CVE-2022-42003 - https://github.com/advisories/GHSA-jjjh-jjxp-wpff
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.16.0")
 
     // Upgraded version of Snappy Java to patch: 
     // CVE-2023-34454 - https://github.com/advisories/GHSA-fjpj-2g6w-x25r
