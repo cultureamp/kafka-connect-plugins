@@ -43,7 +43,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
 
     implementation("ch.qos.logback:logback-classic:1.4.14")
-    implementation("ch.qos.logback:logback-core:1.2.11")
+    implementation("ch.qos.logback:logback-core:1.4.14")
 
     // Upgraded version of Jackson Databind to patch:
     // CVE-2022-42003 - https://github.com/advisories/GHSA-jjjh-jjxp-wpff
