@@ -58,7 +58,7 @@ dependencies {
     // CVE-2023-42503
     implementation("org.apache.commons:commons-compress:1.24.0")
 
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.3")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.16.0")
     implementation("org.mongodb.kafka:mongo-kafka-connect:1.7.0")
     implementation("org.mongodb:bson:4.5.1")
 }
