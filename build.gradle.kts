@@ -2,13 +2,13 @@ val kafkaVersion = "3.6.0"
 
 plugins {
     // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
-    id("org.jetbrains.kotlin.jvm") version "1.6.10"
+    id("org.jetbrains.kotlin.jvm") version "1.9.21"
 
     // Add ktlint
     id("org.jmailen.kotlinter") version "3.6.0"
 
     // Vulnerable dependency checker
-    id("org.owasp.dependencycheck") version "8.3.1"
+    id("org.owasp.dependencycheck") version "8.4.3"
 
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
@@ -42,12 +42,12 @@ dependencies {
     // Use the Kotlin JUnit integration.
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
 
-    implementation("ch.qos.logback:logback-classic:1.2.11")
-    implementation("ch.qos.logback:logback-core:1.2.11")
+    implementation("ch.qos.logback:logback-classic:1.4.14")
+    implementation("ch.qos.logback:logback-core:1.4.14")
 
     // Upgraded version of Jackson Databind to patch:
     // CVE-2022-42003 - https://github.com/advisories/GHSA-jjjh-jjxp-wpff
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.16.0")
 
     // Upgraded version of Snappy Java to patch: 
     // CVE-2023-34454 - https://github.com/advisories/GHSA-fjpj-2g6w-x25r
@@ -56,11 +56,11 @@ dependencies {
     implementation("org.xerial.snappy:snappy-java:1.1.10.5")
 
     // CVE-2023-42503
-    implementation("org.apache.commons:commons-compress:1.24.0")
+    implementation("org.apache.commons:commons-compress:1.25.0")
 
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.3")
-    implementation("org.mongodb.kafka:mongo-kafka-connect:1.7.0")
-    implementation("org.mongodb:bson:4.5.1")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.16.0")
+    implementation("org.mongodb.kafka:mongo-kafka-connect:1.11.0")
+    implementation("org.mongodb:bson:4.11.1")
 }
 
 //A full list of config options can be found here:
