@@ -19,7 +19,7 @@ jobs:
         run: ./gradlew build
       - name: Analyse dependencies for vulnerabilities
         run: ./gradlew dependencyCheckAnalyze
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: Upload build artifacts
           path: build/libs
