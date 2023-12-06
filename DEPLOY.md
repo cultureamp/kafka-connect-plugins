@@ -50,9 +50,9 @@ Save that output because it will be used to update correspondent value in kafka-
 
 After successful deployment, tag the release using the following commands:
 
-\```bash
+```
 git tag -a vX.X.X -m "Release message"
-\```
+```
 
 Replace `vX.X.X` with your version number and `"Release message"` with your release message.
 
@@ -60,9 +60,9 @@ Replace `vX.X.X` with your version number and `"Release message"` with your rele
 
 Push the tag to the remote repository:
 
-\```bash
+```
 git push origin vX.X.X
-\```
+```
 
 Again, replace `vX.X.X` with your version number.
 
