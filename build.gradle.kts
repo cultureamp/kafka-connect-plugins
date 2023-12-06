@@ -8,7 +8,7 @@ plugins {
     id("org.jmailen.kotlinter") version "3.6.0"
 
     // Vulnerable dependency checker
-    id("org.owasp.dependencycheck") version "8.3.1"
+    id("org.owasp.dependencycheck") version "9.0.2"
 
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
@@ -42,14 +42,16 @@ dependencies {
     // Use the Kotlin JUnit integration.
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
 
-    implementation("ch.qos.logback:logback-classic:1.2.11")
-    implementation("ch.qos.logback:logback-core:1.2.11")
+    // CVE-2023-6378 https://logback.qos.ch/news.html#1.3.12
+    implementation("ch.qos.logback:logback-classic:1.4.14")
+    implementation("ch.qos.logback:logback-core:1.4.14")
 
-    // Upgraded version of Jackson Databind to patch:
-    // CVE-2022-42003 - https://github.com/advisories/GHSA-jjjh-jjxp-wpff
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
+    // Previous 2.15.2 version was flagged as vulnerability:
+    // CVE-2023-35116 - developers claim it's a bogus alert https://github.com/FasterXML/jackson-databind/issues/3972
+    // but I guess won't hurt to upgrade it + will resolve dependency check failure
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.16.0")
 
-    // Upgraded version of Snappy Java to patch: 
+    // Upgraded version of Snappy Java to patch:
     // CVE-2023-34454 - https://github.com/advisories/GHSA-fjpj-2g6w-x25r
     // CVE-2023-34453 - https://github.com/advisories/GHSA-pqr6-cmr2-h8hf
     // CVE-2023-34455 - https://github.com/advisories/GHSA-qcwq-55hx-v3vh
@@ -69,5 +71,7 @@ dependencyCheck {
     // anything over a 5.0 is above a 'warning'
     failBuildOnCVSS = 5.0F
     analyzers.assemblyEnabled = false
+
+    nvd.apiKey = System.getenv("NVD_API_KEY") ?: ""
 }
 

@@ -2,6 +2,9 @@ name: CI
 
 on: [push]
 
+env:
+  NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
