@@ -88,4 +88,4 @@ This will create a jar:
 
 ### For deployment instructions, please refer to [the deployment guide](DEPLOY.md)
 
-- [1]: https://gradle.org/
+[1]: https://gradle.org/
