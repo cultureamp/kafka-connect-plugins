@@ -32,7 +32,7 @@ This project is built using Gradle. To build the project run:
 ./gradlew build
 ```
 
-This will create a jar:
+This will create a jar that you will need manually include into release version assets:
 ```
 ./build/libs/kafka-connect-plugins-${version}.jar
 ```
@@ -68,7 +68,7 @@ Again, replace `vX.X.X` with your version number.
 
 ### 3. Create release in GitHub repo of [kafka-connect-plugins](https://github.com/cultureamp/kafka-connect-plugins/releases/new)
 
-Prepare release notes summarizing the changes in this version. Please note if release contains any breaking changes.
+Prepare release notes summarizing the changes in this version. Please note if release contains any breaking changes. Manually include to the release version assets your locally generated jar file
 
 ## Continue with the deployment steps
 
