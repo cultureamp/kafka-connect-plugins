@@ -48,7 +48,7 @@ Save that output because it will be used to update correspondent value in kafka-
 
 ### 1. Tag the Release
 
-After successful deployment, tag the release using the following commands:
+After successful deployment, switch to main branch and tag the release using the following commands:
 
 ```
 git tag -a vX.X.X -m "Release message"
