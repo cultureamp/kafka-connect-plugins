@@ -86,10 +86,10 @@
           {
             "name": "body_observer",
             "type": [
-              "null",
-              "boolean"
+              "boolean",
+              "null"
             ],
-            "default": null
+            "default": true
           },
           {
             "name": "body_gdpr_erasure_request_id",
@@ -213,10 +213,10 @@
       {
         "name": "metadata_service",
         "type": [
-              "null",
-              "string"
+              "string",
+              "null"
             ],
-            "default": null
+        "default": "Default-Service"
       },
     {
       "name": "test_array_of_structs",

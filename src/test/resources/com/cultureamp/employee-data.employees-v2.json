@@ -11,8 +11,7 @@
 		"causation_id": null,
 		"executor_id": {
 			"string": "379907ca-632c-4e83-89c4-9dbe0e759ad3"
-		},
-		"service": "Influx"
+		}
 	},
 	"test_array_of_structs": [
 		{
