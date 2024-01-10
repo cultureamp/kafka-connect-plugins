@@ -8,7 +8,7 @@ plugins {
     id("org.jmailen.kotlinter") version "3.6.0"
 
     // Vulnerable dependency checker
-    id("org.owasp.dependencycheck") version "9.0.2"
+    id("org.owasp.dependencycheck") version "9.0.8"
 
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
@@ -16,7 +16,7 @@ plugins {
 }
 
 // Package version
-version = "0.7.5"
+version = "0.7.6"
 
 repositories {
     // Use Maven Central for resolving dependencies.

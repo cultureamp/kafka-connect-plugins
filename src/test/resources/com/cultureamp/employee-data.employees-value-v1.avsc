@@ -89,11 +89,8 @@
           },
           {
             "name": "observer",
-            "type": [
-              "null",
-              "boolean"
-            ],
-            "default": null
+            "type": "boolean",
+            "default": true
           },
           {
             "name": "gdpr_erasure_request_id",
@@ -259,7 +256,8 @@
           },
           {
             "name": "service",
-            "type": "string"
+            "type": "string",
+            "default": "Default-Service"
           }
         ]
       }

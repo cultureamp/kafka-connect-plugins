@@ -8,8 +8,10 @@ import com.mongodb.kafka.connect.util.ClassHelper
 import com.mongodb.kafka.connect.util.ConfigHelper
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaAndValue
+import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.source.SourceRecord
+import org.apache.kafka.connect.transforms.util.SchemaUtil
 import org.junit.Before
 import java.io.File
 import java.nio.file.Files
@@ -74,7 +76,7 @@ class RedShiftComplexDataTypeTransformerTest {
         )
 
         assertEquals(expectedValue, transformedRecord.value())
-        assertEquals(expectedSchema, transformedRecord.valueSchema())
+        assertEquals(getExpectedSchema(), transformedRecord.valueSchema())
     }
 
     @Test
@@ -94,13 +96,13 @@ class RedShiftComplexDataTypeTransformerTest {
         assertTrue(hasNoComplexTypes(transformedRecord))
 
         val expectedValue = nullBodyStruct(
-            id, account_id, employee_id, event_created_at, metadata_correlation_id, metadata_causation_id, metadata_executor_id, metadata_service, test_array_of_structs, test_string_array, test_array_of_arrays, test_map,
+            id, account_id, employee_id, event_created_at, metadata_correlation_id, metadata_causation_id, metadata_executor_id, "Default-Service", test_array_of_structs, test_string_array, test_array_of_arrays, test_map,
             topic_key = "",
             tombstone = true
         )
 
         assertEquals(expectedValue, transformedRecord.value())
-        assertEquals(expectedSchema, transformedRecord.valueSchema())
+        assertEquals(getExpectedSchema(), transformedRecord.valueSchema())
     }
 
     @Test
@@ -129,7 +131,7 @@ class RedShiftComplexDataTypeTransformerTest {
         )
 
         assertEquals(expectedValue, transformedRecord.value())
-        assertEquals(expectedSchema, transformedRecord.valueSchema())
+        assertEquals(getExpectedSchema(), transformedRecord.valueSchema())
     }
 
     @Test
@@ -171,10 +173,10 @@ class RedShiftComplexDataTypeTransformerTest {
         hasNoComplexTypes(sourceRecord)
         assertTrue(hasNoComplexTypes(transformedRecord))
 
-        val expectedValue = Struct(expectedSchema).put("tombstone", true)
+        val expectedValue = Struct(getExpectedSchema()).put("tombstone", true)
 
         assertEquals(expectedValue, transformedRecord.value())
-        assertEquals(expectedSchema, transformedRecord.valueSchema())
+        assertEquals(getExpectedSchema(), transformedRecord.valueSchema())
     }
 
     @Test
@@ -266,7 +268,7 @@ class RedShiftComplexDataTypeTransformerTest {
         topic_key: String?,
         tombstone: Boolean
     ): Struct {
-        val returnStruct = Struct(expectedSchema)
+        val returnStruct = Struct(getExpectedSchema())
         returnStruct.put("id", id)
             .put("account_id", account_id)
             .put("employee_id", employee_id)
@@ -318,7 +320,7 @@ class RedShiftComplexDataTypeTransformerTest {
         topic_key: String?,
         tombstone: Boolean
     ): Struct {
-        val returnStruct = Struct(expectedSchema)
+        val returnStruct = Struct(getExpectedSchema())
         returnStruct.put("id", id)
             .put("account_id", account_id)
             .put("employee_id", employee_id)
@@ -344,7 +346,28 @@ class RedShiftComplexDataTypeTransformerTest {
         return String(Files.readAllBytes(File(url.file).toPath()))
     }
 
-    private val expectedSchema = AvroSchema.fromJson(fileContent("com/cultureamp/employee-data.employees-v1-target-schema.avsc"))
+    private fun convertFieldSchema(orig: Schema, optional: Boolean, defaultFromParent: Any?): Schema {
+        val builder = SchemaUtil.copySchemaBasics(orig)
+        if (optional)
+            builder.optional()
+        if (defaultFromParent != null)
+            builder.defaultValue(defaultFromParent)
+        return builder.build()
+    }
+
+    private fun getExpectedSchema(): Schema {
+        val expectedSchema = AvroSchema.fromJson(fileContent("com/cultureamp/employee-data.employees-v1-target-schema.avsc"))
+        val builder = SchemaUtil.copySchemaBasics(expectedSchema)
+        for (field in expectedSchema.fields()) {
+            if (field.name() == "body_observer")
+                builder.field("body_observer", convertFieldSchema(SchemaBuilder.bool().build(), true, true))
+            else if (field.name() == "metadata_service")
+                builder.field("metadata_service", convertFieldSchema(SchemaBuilder.string().build(), true, "Default-Service"))
+            else
+                builder.field(field.name(), field.schema())
+        }
+        return builder.build()
+    }
 
     private val jsonWriterSettings =
         ClassHelper.createInstance(

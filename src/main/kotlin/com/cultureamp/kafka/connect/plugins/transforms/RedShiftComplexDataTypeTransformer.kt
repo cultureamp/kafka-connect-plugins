@@ -86,7 +86,7 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
         for (field in schema.fields()) {
             val fieldName = fieldName(fieldNamePrefix, field.name())
             val fieldDefaultValue = if (field.schema().defaultValue() != null) {
-                field.schema().defaultValue() as Struct
+                field.schema().defaultValue()
             } else if (schema.defaultValue() != null) {
                 val checkParent = schema.defaultValue() as Struct
                 checkParent.get(field)
@@ -118,11 +118,17 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
         var realValue = value
         var realSchema = schema
         if (value == null && schema.type() == Schema.Type.ARRAY) {
-            realValue = "[]"
+            if (schema.defaultValue() != null)
+                realValue = schema.defaultValue()
+            else
+                realValue = "[]"
             realSchema = SchemaBuilder.string().build()
         }
         if (value == null && schema.type() == Schema.Type.MAP) {
-            realValue = "{}"
+            if (schema.defaultValue() != null)
+                realValue = schema.defaultValue()
+            else
+                realValue = "{}"
             realSchema = SchemaBuilder.string().build()
         }
         val converted = jsonConverter.fromConnectData("", realSchema, realValue)
@@ -141,16 +147,20 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
 
         for (field in record.schema().fields()) {
             val fieldName = fieldName(fieldNamePrefix, field.name())
+            var value = record.get(field)
+            if (value == null && field.schema().defaultValue() != null) {
+                value = field.schema().defaultValue()
+            }
             when (field.schema().type()) {
-                Schema.Type.INT8 -> newRecord.put(fieldName, record.get(field))
-                Schema.Type.INT16 -> newRecord.put(fieldName, record.get(field))
-                Schema.Type.INT32 -> newRecord.put(fieldName, record.get(field))
-                Schema.Type.INT64 -> newRecord.put(fieldName, record.get(field))
-                Schema.Type.FLOAT32 -> newRecord.put(fieldName, record.get(field))
-                Schema.Type.FLOAT64 -> newRecord.put(fieldName, record.get(field))
-                Schema.Type.BOOLEAN -> newRecord.put(fieldName, record.get(field))
-                Schema.Type.STRING -> newRecord.put(fieldName, record.get(field))
-                Schema.Type.BYTES -> newRecord.put(fieldName, record.get(field))
+                Schema.Type.INT8 -> newRecord.put(fieldName, value)
+                Schema.Type.INT16 -> newRecord.put(fieldName, value)
+                Schema.Type.INT32 -> newRecord.put(fieldName, value)
+                Schema.Type.INT64 -> newRecord.put(fieldName, value)
+                Schema.Type.FLOAT32 -> newRecord.put(fieldName, value)
+                Schema.Type.FLOAT64 -> newRecord.put(fieldName, value)
+                Schema.Type.BOOLEAN -> newRecord.put(fieldName, value)
+                Schema.Type.STRING -> newRecord.put(fieldName, value)
+                Schema.Type.BYTES -> newRecord.put(fieldName, value)
                 Schema.Type.ARRAY -> newRecord.put(fieldName, convertToString(field.schema(), record.get(field)))
                 Schema.Type.MAP -> newRecord.put(fieldName, convertToString(field.schema(), record.get(field)))
                 Schema.Type.STRUCT -> buildWithSchema(record.getStruct(field.name()), fieldName, newRecord)
