@@ -98,8 +98,13 @@ class SlackIntegrationPayloadTransformer<R : ConnectRecord<R>> : Transformation<
         }
     }
 
-    private fun status(fullDocument: Struct): String =
-        objectMapper.readValue(fullDocument["status"] as String, Map::class.java)["\$symbol"] as String
+    private fun status(fullDocument: Struct): String {
+        try {
+            return objectMapper.readValue(fullDocument["status"] as String, Map::class.java)["\$symbol"] as String
+        } catch (e: Exception) {
+            return fullDocument["status"] as String
+        }
+    }
 
     private fun oauthResponseData(fullDocument: Struct): Struct =
         Requirements.requireStruct(fullDocument["oauth_response_data"], purpose)
