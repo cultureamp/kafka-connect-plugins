@@ -47,8 +47,54 @@ class SlackIntegrationPayloadTransformerTest {
     }
 
     @Test
+    fun `can transform inserts for legacy Slack integrations and upgraded mongodb 6`() {
+        val valueAndSchema = payload("com/cultureamp/slack-integration-insert-v1-mongo6.json")
+
+        val transformedRecord = transformer.apply(
+            SourceRecord(
+                null,
+                null,
+                "test",
+                valueAndSchema.schema(),
+                valueAndSchema.value()
+            )
+        )
+
+        val expectedValue = struct(
+            accountId, accessToken, teamId, teamName, scope,
+            enterpriseId, isDeleted = false, status = "active"
+        )
+
+        assertEquals(expectedValue, transformedRecord.value())
+        assertEquals(expectedSchema, transformedRecord.valueSchema())
+    }
+
+    @Test
     fun `can transform updates for legacy Slack integrations`() {
         val valueAndSchema = payload("com/cultureamp/slack-integration-update-v1.json")
+
+        val transformedRecord = transformer.apply(
+            SourceRecord(
+                null,
+                null,
+                "test",
+                valueAndSchema.schema(),
+                valueAndSchema.value()
+            )
+        )
+
+        val expectedValue = struct(
+            accountId, accessToken, teamId, teamName, scope,
+            enterpriseId = null, isDeleted = true, status = "inactive"
+        )
+
+        assertEquals(expectedValue, transformedRecord.value())
+        assertEquals(expectedSchema, transformedRecord.valueSchema())
+    }
+
+    @Test
+    fun `can transform updates for legacy Slack integrations and upgraded mongodb 6`() {
+        val valueAndSchema = payload("com/cultureamp/slack-integration-update-v1-mongo6.json")
 
         val transformedRecord = transformer.apply(
             SourceRecord(
@@ -93,8 +139,54 @@ class SlackIntegrationPayloadTransformerTest {
     }
 
     @Test
+    fun `can transform inserts for Slack integrations and upgraded mongodb`() {
+        val valueAndSchema = payload("com/cultureamp/slack-integration-insert-v2-mongo6.json")
+
+        val transformedRecord = transformer.apply(
+            SourceRecord(
+                null,
+                null,
+                "test",
+                valueAndSchema.schema(),
+                valueAndSchema.value()
+            )
+        )
+
+        val expectedValue = struct(
+            accountId, accessToken, teamId, teamName, scope,
+            enterpriseId, isDeleted = false, status = "active"
+        )
+
+        assertEquals(expectedValue, transformedRecord.value())
+        assertEquals(expectedSchema, transformedRecord.valueSchema())
+    }
+
+    @Test
     fun `can transform updates for Slack integrations`() {
         val valueAndSchema = payload("com/cultureamp/slack-integration-update-v2.json")
+
+        val transformedRecord = transformer.apply(
+            SourceRecord(
+                null,
+                null,
+                "test",
+                valueAndSchema.schema(),
+                valueAndSchema.value()
+            )
+        )
+
+        val expectedValue = struct(
+            accountId, accessToken, teamId, teamName, scope,
+            enterpriseId = null, isDeleted = true, status = "inactive"
+        )
+
+        assertEquals(expectedValue, transformedRecord.value())
+        assertEquals(expectedSchema, transformedRecord.valueSchema())
+    }
+
+    @Test
+    fun `can transform updates for Slack integrations and upgraded mongodb 6`() {
+        val valueAndSchema = payload("com/cultureamp/slack-integration-update-v2-mongo6.json")
 
         val transformedRecord = transformer.apply(
             SourceRecord(
