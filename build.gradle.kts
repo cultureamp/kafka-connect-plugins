@@ -42,7 +42,7 @@ dependencies {
     // Use the Kotlin JUnit integration.
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
 
-    implementation("ch.qos.logback:logback-classic:1.5.2")
+    implementation("ch.qos.logback:logback-classic:1.5.3")
     implementation("ch.qos.logback:logback-core:1.5.2")
 
     // Upgraded version of Jackson Databind to patch:
