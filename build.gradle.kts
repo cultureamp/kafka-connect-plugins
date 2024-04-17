@@ -16,7 +16,7 @@ plugins {
 }
 
 // Package version
-version = "0.7.7"
+version = "0.7.8-alpha"
 
 repositories {
     // Use Maven Central for resolving dependencies.
