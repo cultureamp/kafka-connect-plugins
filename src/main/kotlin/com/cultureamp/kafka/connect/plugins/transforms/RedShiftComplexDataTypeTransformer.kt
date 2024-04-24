@@ -10,6 +10,7 @@ import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.errors.DataException
 import org.apache.kafka.connect.json.JsonConverter
+import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.transforms.Transformation
 import org.apache.kafka.connect.transforms.util.Requirements
 import org.apache.kafka.connect.transforms.util.SchemaUtil
@@ -189,10 +190,19 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
             }
             builder.field("topic_key", convertFieldSchema(SchemaBuilder.string().build(), false, ""))
             builder.field("tombstone", convertFieldSchema(SchemaBuilder.bool().build(), false, false))
+            builder.field("_kafka_metadata_partition", convertFieldSchema(SchemaBuilder.string().build(), true, null))
+            builder.field("_kafka_metadata_offset", convertFieldSchema(SchemaBuilder.string().build(), true, null))
+            builder.field("_kafka_metadata_timestamp", convertFieldSchema(SchemaBuilder.string().build(), true, null))
             updatedSchema = builder.build()
             schemaUpdateCache.put(sourceSchema, updatedSchema)
         }
         val updatedValue = Struct(updatedSchema)
+        updatedValue.put("_kafka_metadata_partition", record.kafkaPartition().toString())
+        if (record is SinkRecord) {
+            updatedValue.put("_kafka_metadata_timestamp", record.timestamp().toString())
+            updatedValue.put("_kafka_metadata_offset", record.kafkaOffset().toString())
+        }
+
         if (record.key() != null) {
             updatedValue.put("topic_key", record.key().toString())
         }

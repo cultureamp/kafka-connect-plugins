@@ -259,6 +259,30 @@
       "name": "tombstone",
       "type": "boolean",
       "default": false
+    },
+    {
+      "name": "_kafka_metadata_partition",
+      "type": [
+        "null",
+        "string"
+      ],
+      "default": null
+    },
+    {
+      "name": "_kafka_metadata_offset",
+      "type": [
+        "null",
+        "string"
+      ],
+      "default": null
+    },
+    {
+      "name": "_kafka_metadata_timestamp",
+      "type": [
+        "null",
+        "string"
+      ],
+      "default": null
     }
   ]
 }
