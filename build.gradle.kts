@@ -56,7 +56,7 @@ dependencies {
     implementation("org.xerial.snappy:snappy-java:1.1.10.5")
 
     // CVE-2023-42503
-    implementation("org.apache.commons:commons-compress:1.26.1")
+    implementation("org.apache.commons:commons-compress:1.26.2")
 
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.1")
     implementation("org.mongodb.kafka:mongo-kafka-connect:1.12.0")
