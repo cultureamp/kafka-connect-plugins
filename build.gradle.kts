@@ -5,7 +5,7 @@ plugins {
     id("org.jetbrains.kotlin.jvm") version "1.9.24"
 
     // Add ktlint
-    id("org.jmailen.kotlinter") version "3.6.0"
+    id("org.jmailen.kotlinter") version "4.4.1"
 
     // Vulnerable dependency checker
     id("org.owasp.dependencycheck") version "9.2.0"
