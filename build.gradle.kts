@@ -1,4 +1,4 @@
-val kafkaVersion = "3.7.0"
+val kafkaVersion = "3.8.0"
 
 plugins {
     // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
