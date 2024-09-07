@@ -60,7 +60,7 @@ dependencies {
 
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.1")
     implementation("org.mongodb.kafka:mongo-kafka-connect:1.13.0")
-    implementation("org.mongodb:bson:4.11.2")
+    implementation("org.mongodb:bson:4.11.4")
 }
 
 //A full list of config options can be found here:
