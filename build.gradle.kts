@@ -53,7 +53,7 @@ dependencies {
     // CVE-2023-34454 - https://github.com/advisories/GHSA-fjpj-2g6w-x25r
     // CVE-2023-34453 - https://github.com/advisories/GHSA-pqr6-cmr2-h8hf
     // CVE-2023-34455 - https://github.com/advisories/GHSA-qcwq-55hx-v3vh
-    implementation("org.xerial.snappy:snappy-java:1.1.10.5")
+    implementation("org.xerial.snappy:snappy-java:1.1.10.7")
 
     // CVE-2023-42503
     implementation("org.apache.commons:commons-compress:1.26.2")
