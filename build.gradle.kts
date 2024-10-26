@@ -45,7 +45,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
 
     // CVE-2023-6378 https://logback.qos.ch/news.html#1.3.12
-    implementation("ch.qos.logback:logback-classic:1.4.14")
+    implementation("ch.qos.logback:logback-classic:1.5.12")
     implementation("ch.qos.logback:logback-core:1.4.14")
 
     // Previous 2.15.2 version was flagged as vulnerability:
