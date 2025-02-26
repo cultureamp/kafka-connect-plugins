@@ -75,5 +75,6 @@ dependencyCheck {
     analyzers.assemblyEnabled = false
 
     nvd.apiKey = System.getenv("NVD_API_KEY") ?: ""
+    nvd.delay = 8000
 }
 
