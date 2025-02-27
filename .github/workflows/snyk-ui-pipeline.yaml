@@ -1,0 +1,22 @@
+##This workflow is specifically used to upload the snyk scan results into Snyk UI Org
+name: Workflow for Gradle (jdk17) using Snyk Monitor to upload scan results in Snyk UI
+on:
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  snyk_monitor_on_pr_merged:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Monitor vulnerabilities with snyk
+        uses: snyk/actions/gradle-jdk17@master
+        with:
+          args: --all-projects --severity-threshold=high --org=b52d0efc-6926-4d88-b0b1-cd6d91607b3b
+          command: monitor
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_ACTION_TOKEN }}
