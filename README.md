@@ -25,7 +25,7 @@ Assume the following configuration:
 
 ```json
 "transforms": "ModifyPartition",
-"transforms.ModifyPartition.type":"com.cultureamp.kafka.connect.transforms.ModifyPartition",
+"transforms.ModifyPartition.type":"com.cultureamp.kafka.connect.plugins.transforms.ModifyPartition",
 "transforms.ModifyPartition.header.key": "account_id"
 "transforms.ModifyPartition.number.partitions": "10"
 ```

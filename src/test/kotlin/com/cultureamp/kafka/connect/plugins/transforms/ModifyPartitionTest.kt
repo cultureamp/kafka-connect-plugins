@@ -27,6 +27,27 @@ class ModifyPartitionTest {
     }
 
     @Test
+    fun `a missing header key should not result in a null pointer exception, but a connect exception`() {
+        val partitionSmt = configure("header.key" to "account_id", "number.partitions" to 10)
+        val record = SourceRecord(
+            null,
+            null,
+            "test",
+            0,
+            null,
+            null,
+            null,
+            "",
+            789L,
+            headers()
+        )
+
+        assertFailsWith<ConnectException> {
+            partitionSmt.apply(record)
+        }
+    }
+
+    @Test
     fun `calculate the partition number using the account_id header`() {
         val partitionSmt = configure("header.key" to "account_id", "number.partitions" to 10)
         val record = SourceRecord(

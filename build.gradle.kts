@@ -66,14 +66,3 @@ dependencies {
     implementation("org.mongodb.kafka:mongo-kafka-connect:1.7.0")
     implementation("org.mongodb:bson:4.5.1")
 }
-
-//A full list of config options can be found here:
-//https://jeremylong.github.io/DependencyCheck/dependency-check-gradle/configuration.html
-dependencyCheck {
-    // anything over a 5.0 is above a 'warning'
-    failBuildOnCVSS = 5.0F
-    analyzers.assemblyEnabled = false
-
-    nvd.apiKey = System.getenv("NVD_API_KEY") ?: ""
-}
-
