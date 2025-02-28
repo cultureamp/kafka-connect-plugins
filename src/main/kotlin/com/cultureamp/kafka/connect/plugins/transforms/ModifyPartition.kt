@@ -33,7 +33,7 @@ class ModifyPartition<R : ConnectRecord<R>> : Transformation<R> {
         } else if (partitionCount!! <= 0) {
             throw ConnectException("Partition count should be greater than 0")
         }
-        val userSpecifiedPartitionKey = record.headers().lastWithName(headerKey).value() as String?
+        val userSpecifiedPartitionKey = record.headers().lastWithName(headerKey)?.value() as String?
 
         if (userSpecifiedPartitionKey != null) {
             val partitionNumber = Partitioner(CRC32(), partitionCount!!).partitionNumberFor(userSpecifiedPartitionKey)
