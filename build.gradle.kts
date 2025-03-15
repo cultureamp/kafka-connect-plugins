@@ -45,8 +45,8 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
 
     // CVE-2023-6378 https://logback.qos.ch/news.html#1.3.12
-    implementation("ch.qos.logback:logback-classic:1.4.14")
-    implementation("ch.qos.logback:logback-core:1.4.14")
+    implementation("ch.qos.logback:logback-classic:1.5.17")
+    implementation("ch.qos.logback:logback-core:1.5.17")
 
     // Previous 2.15.2 version was flagged as vulnerability:
     // CVE-2023-35116 - developers claim it's a bogus alert https://github.com/FasterXML/jackson-databind/issues/3972
@@ -57,12 +57,12 @@ dependencies {
     // CVE-2023-34454 - https://github.com/advisories/GHSA-fjpj-2g6w-x25r
     // CVE-2023-34453 - https://github.com/advisories/GHSA-pqr6-cmr2-h8hf
     // CVE-2023-34455 - https://github.com/advisories/GHSA-qcwq-55hx-v3vh
-    implementation("org.xerial.snappy:snappy-java:1.1.10.5")
+    implementation("org.xerial.snappy:snappy-java:1.1.10.7")
 
     // CVE-2023-42503
-    implementation("org.apache.commons:commons-compress:1.26.0")
+    implementation("org.apache.commons:commons-compress:1.27.1")
 
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.3")
-    implementation("org.mongodb.kafka:mongo-kafka-connect:1.7.0")
-    implementation("org.mongodb:bson:4.5.1")
+    implementation("org.mongodb.kafka:mongo-kafka-connect:1.15.0")
+    implementation("org.mongodb:bson:4.11.5")
 }
