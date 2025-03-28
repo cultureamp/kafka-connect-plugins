@@ -45,8 +45,8 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
 
     // CVE-2023-6378 https://logback.qos.ch/news.html#1.3.12
-    implementation("ch.qos.logback:logback-classic:1.5.17")
-    implementation("ch.qos.logback:logback-core:1.5.17")
+    implementation("ch.qos.logback:logback-classic:1.5.18")
+    implementation("ch.qos.logback:logback-core:1.5.18")
 
     // Previous 2.15.2 version was flagged as vulnerability:
     // CVE-2023-35116 - developers claim it's a bogus alert https://github.com/FasterXML/jackson-databind/issues/3972
