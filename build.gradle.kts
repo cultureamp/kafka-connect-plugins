@@ -63,6 +63,6 @@ dependencies {
     implementation("org.apache.commons:commons-compress:1.27.1")
 
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.3")
-    implementation("org.mongodb.kafka:mongo-kafka-connect:1.15.0")
+    implementation("org.mongodb.kafka:mongo-kafka-connect:1.16.0")
     implementation("org.mongodb:bson:4.11.5")
 }
