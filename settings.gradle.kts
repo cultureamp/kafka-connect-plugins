@@ -1,4 +1,3 @@
-rootProject.name = "kafka-connect-plugins"
 // Set up to download gradle plugins from GitHub Packages
 pluginManagement {
   repositories {
