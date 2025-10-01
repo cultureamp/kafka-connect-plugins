@@ -10,4 +10,3 @@ A bunch of changes from the Culture Amp Kotlin library template - https://github
 - Use foojay resolver + gradle toolchains so it can automatically download the correct version of java
 - Add devbox support :-D
 - Bump Kotlin version to the also-but-less outdated 1.9.22 (came from the template)
-- Use swag linting instead of kotlinlint
