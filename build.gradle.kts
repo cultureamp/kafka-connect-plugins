@@ -1,4 +1,5 @@
 val kafkaVersion = "3.6.2"
+val javaVersion = "17"
 
 plugins {
     // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
@@ -63,6 +64,18 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.3")
     implementation("org.mongodb.kafka:mongo-kafka-connect:1.7.0")
     implementation("org.mongodb:bson:4.5.1")
+}
+
+// Set target java version
+configure<org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension> {
+  jvmToolchain { languageVersion.set(JavaLanguageVersion.of(javaVersion)) }
+}
+
+java {
+  toolchain { languageVersion.set(JavaLanguageVersion.of(javaVersion)) }
+
+  // publish source jar to maven
+  withSourcesJar()
 }
 
 publishing {
