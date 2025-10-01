@@ -1,0 +1,19 @@
+name: Changesets
+
+on:
+  workflow_dispatch:
+    inputs:
+      label:
+        description: "Pick a label/description for the prerelease. The version will be 0.0.0-{label}-{timestamp}. It doesn't have to be unique, but it has to contain at least one letter, is lowercase. Only dots and dashes are valid, no underscores."
+        required: true
+        type: string
+  push:
+    branches:
+      - main
+
+jobs:
+  trigger:
+    uses: cultureamp/ca-changesets/.github/workflows/kotlin-changesets.yaml@v1
+    with:
+      label: ${{ github.event.inputs.label }}
+    secrets: inherit

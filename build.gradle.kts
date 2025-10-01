@@ -13,10 +13,14 @@ plugins {
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
 
+  // Enable publishing to GitHub Maven repository
+  `maven-publish`
 }
 
+
+group = "com.cultureamp"
 // Package version
-version = "0.7.9"
+version = gradle.extra["package_version"]!! as String
 
 repositories {
     // Use Maven Central for resolving dependencies.
@@ -38,11 +42,8 @@ dependencies {
     implementation("org.apache.kafka:connect-transforms:$kafkaVersion")
     implementation("org.apache.avro:avro:1.11.3")
 
-    // Use the Kotlin test library.
-    testImplementation("org.jetbrains.kotlin:kotlin-test")
-
-    // Use the Kotlin JUnit integration.
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
+  // Use the Kotlin JUnit integration.
+  testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
 
     // CVE-2023-6378 https://logback.qos.ch/news.html#1.3.12
     implementation("ch.qos.logback:logback-classic:1.4.14")
@@ -65,4 +66,36 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.3")
     implementation("org.mongodb.kafka:mongo-kafka-connect:1.7.0")
     implementation("org.mongodb:bson:4.5.1")
+}
+
+publishing {
+  repositories {
+    maven {
+      name = "GitHubPackages"
+      url = uri("https://maven.pkg.github.com/cultureamp/${rootProject.name}")
+      credentials {
+        username = System.getenv("USERNAME")
+        password = System.getenv("PACKAGE_WRITE_TOKEN")
+      }
+    }
+  }
+  publications {
+    create<MavenPublication>("maven") {
+      artifactId = project.name
+      from(components["java"])
+    }
+  }
+}
+
+tasks.jar {
+  manifest {
+    attributes(
+      mapOf(
+        "Implementation-Title" to project.name,
+        "Implementation-Version" to project.version,
+      ),
+    )
+  }
+
+  archiveBaseName.set(project.name)
 }
