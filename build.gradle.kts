@@ -97,6 +97,8 @@ publishing {
   }
 }
 
+tasks.named<Test>("test") { useJUnitPlatform() }
+
 tasks.jar {
   manifest {
     attributes(
