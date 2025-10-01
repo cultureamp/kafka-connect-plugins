@@ -40,8 +40,9 @@ dependencies {
     implementation("org.apache.kafka:connect-transforms:$kafkaVersion")
     implementation("org.apache.avro:avro:1.11.3")
 
-  // Use the Kotlin JUnit integration.
-  testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
+    // Use the Kotlin JUnit integration.
+    testImplementation("org.jetbrains.kotlin:kotlin-test")
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.10.0")
 
     // CVE-2023-6378 https://logback.qos.ch/news.html#1.3.12
     implementation("ch.qos.logback:logback-classic:1.4.14")
@@ -97,7 +98,9 @@ publishing {
   }
 }
 
-tasks.named<Test>("test") { useJUnitPlatform() }
+tasks.named<Test>("test") { 
+    useJUnitPlatform()
+}
 
 tasks.jar {
   manifest {
