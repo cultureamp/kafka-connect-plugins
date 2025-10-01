@@ -29,3 +29,11 @@ jobs:
         env:
           USERNAME: ${{ github.actor }}
           PACKAGE_READ_TOKEN: ${{ secrets.PACKAGE_REGISTRY_ACCESS_TOKEN }}
+      - name: Run Snyk Vulnerability Scan
+        uses: snyk/actions/gradle-jdk17@master
+        continue-on-error: true
+        with:
+          args: --all-projects --severity-threshold=high
+          command: test
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_ACTION_TOKEN }}
