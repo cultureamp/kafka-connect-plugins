@@ -1,4 +1,6 @@
 name: backstage-validator
+permissions:
+  contents: read
 
 on:
   push:
