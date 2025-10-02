@@ -9,7 +9,7 @@ import com.mongodb.kafka.connect.util.ConfigHelper
 import org.apache.kafka.connect.data.SchemaAndValue
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.source.SourceRecord
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
 import java.io.File
 import java.nio.file.Files
 import kotlin.test.Test
@@ -18,7 +18,7 @@ import kotlin.test.assertEquals
 class SlackIntegrationPayloadTransformerTest {
     private lateinit var transformer: SlackIntegrationPayloadTransformer<SourceRecord>
 
-    @Before
+    @BeforeEach
     fun setUp() {
         transformer = SlackIntegrationPayloadTransformer()
     }
