@@ -1,0 +1,87 @@
+# Copied from https://github.com/cultureamp/ca-changesets/blob/v1/.github/workflows/kotlin-prerelease.yaml
+name: Kotlin Prerelease
+
+on:
+  workflow_call:
+    inputs:
+      label:
+        description: "Pick a label/description for the prerelease. It doesn't have to be unique, but it has to contain at least one letter, is lowercase. Only dots and dashes are valid, no underscores."
+        type: string
+
+jobs:
+  prerelease:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+          fetch-depth: 0
+
+      # Kotlin specific setup
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Prepare changesets
+        shell: bash
+        run: |
+          sudo npm config -g set '//npm.pkg.github.com/:_authToken' '${NODE_AUTH_TOKEN}'
+          sudo npm config -g set '@cultureamp:registry' 'https://npm.pkg.github.com'
+          npm install -g @changesets/cli @changesets/changelog-github
+          npm link @changesets/cli
+          npm link @changesets/changelog-github
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
+
+      # Pre release
+      - name: "Check if there are changesets"
+        shell: bash
+        run: |
+          if find .changeset -type f -name "*.md" | grep -q '[a-zA-Z]\+\-[a-zA-Z]\+\-[a-zA-Z]\+\.md'; then
+            echo "Changesets found. Proceeding with prerelease."
+          else
+            message="No changeset files found. Please create a changeset in your branch before prerelease."
+            echo "$message" | tee -a $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+      - name: "Check if label value: ${{ inputs.label }} is valid"
+        shell: bash
+        run: |
+          # Dash has to be in front of all other ranges to avoid accidentally creating an invalid range e.g. good [-a-z0-9\.] e.g. bad [a-z0-9-\.]
+          if [[ ! ${{ inputs.label }} =~ ^[-a-z0-9\.]*[a-z][-a-z0-9\.]*$ ]]; then
+            message="Label value: ${{ inputs.label }} is not valid. It must contain at least one letter, is lowercase and only dots and dashes are valid, no underscores."
+            echo "$message" | tee -a $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            message="Label value: ${{ inputs.label }} is valid"
+            echo "$message" | tee -a $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: "Pre release with label: ${{ inputs.label }}"
+        shell: bash
+        run: |
+          echo "creating tag for prereleases..."
+          npx changeset version --snapshot "${{ inputs.label }}"
+
+          echo "Kotlin suite release"
+          {
+            echo '```'
+            echo "$(./gradlew build publish 2>&1)"
+            echo '```'
+          } | tee -a $GITHUB_STEP_SUMMARY
+           
+          version=$(jq -r '.version' ./package.json)
+          message="
+          Add the following to your project's build.gradle.kts to test the prerelease:
+          \`\`\`kts
+          plugins {
+            id("com.cultureamp.ca-chris-kotlin-modules-submodule") version "$version"
+          }
+          \`\`\`
+          "
+          echo "$message" | tee -a $GITHUB_STEP_SUMMARY
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          USERNAME: ${{ github.actor }}
+          PACKAGE_READ_TOKEN: ${{ secrets.PACKAGE_REGISTRY_ACCESS_TOKEN }}
+          PACKAGE_WRITE_TOKEN: ${{ secrets.GITHUB_TOKEN }}

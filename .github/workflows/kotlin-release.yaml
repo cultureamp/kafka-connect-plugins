@@ -1,0 +1,127 @@
+# Copied from https://github.com/cultureamp/ca-changesets/blob/v1/.github/workflows/kotlin-release.yaml
+name: Kotlin Release
+
+on:
+  workflow_call:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+          fetch-depth: 0
+
+      # Kotlin specific setup
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Prepare changesets
+        shell: bash
+        run: |
+          sudo npm config -g set '//npm.pkg.github.com/:_authToken' '${NODE_AUTH_TOKEN}'
+          sudo npm config -g set '@cultureamp:registry' 'https://npm.pkg.github.com'
+          npm install -g @changesets/cli @changesets/changelog-github
+          npm link @changesets/cli
+          npm link @changesets/changelog-github
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
+
+      - name: Create publish script
+        shell: bash
+        run: |
+          mkdir -p ./tmp
+          cat << 'EOF' > ./tmp/publish_script.sh
+          #!/bin/bash
+          set -eo pipefail
+          echo "Kotlin suite release"
+          {
+            echo '```'
+            echo "$(./gradlew build publish 2>&1)"
+            echo '```'
+          } | tee -a $GITHUB_STEP_SUMMARY
+
+          name=$(jq -r '.name' ./package.json)
+          version=$(jq -r '.version' ./package.json)
+
+          if git tag "$version" >/dev/null 2>&1; then
+            echo "Pushing tags..."
+            git push origin "$version"
+          else
+            echo "Tag found: $name@$version"
+          fi
+
+          if gh release view "$version" > /dev/null 2>&1; then
+            echo "Release $version already exists. Skipping release creation."
+          else
+            changelog="$(awk -v version="## $version" '
+              $0 == version { found=1; next }
+              found && /^## / { exit }
+              found { print }
+              ' CHANGELOG.md)"
+            gh release create "$version" --title "$version" --notes "$changelog"
+          fi
+
+          EOF
+          chmod +x ./tmp/publish_script.sh
+
+      - uses: changesets/action@v1
+        id: changesets_action
+        with:
+          publish: ./tmp/publish_script.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          USERNAME: ${{ github.actor }}
+          PACKAGE_READ_TOKEN: ${{ secrets.PACKAGE_REGISTRY_ACCESS_TOKEN }}
+          PACKAGE_WRITE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # This removes the thank you message, fix comments that are for npm
+      - name: Modify Version Packages PR
+        shell: bash
+        run: |
+          sleep 3 # Race conditions with PR visibility
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+          pr_number=$(gh pr list --search "Version Packages in:title" --state open --json number --jq '.[0].number')
+          if [ -z "$pr_number" ]; then
+            echo "No open PR found named 'Version Packages'"
+            exit 0
+          fi
+
+          # Define regex patterns and replacements
+          regex_patterns=(
+            "you can merge this and the packages will be published to npm automatically"
+            "Thanks \[@[^\\]+\]\([^\)]+\)! - "
+          )
+          replacements=(
+            "you can merge this and the packages will be published automatically"
+            ""
+          )
+
+          # Update PR description
+          description=$(gh pr view "$pr_number" --json body --jq '.body')
+          new_description="$description"
+          for i in "${!regex_patterns[@]}"; do
+            pattern="${regex_patterns[i]}"
+            replacement="${replacements[i]}"
+            new_description=$(echo "$new_description" | sed -E "s|$pattern|$replacement|g")
+          done
+          gh pr edit "$pr_number" --body "$new_description"
+
+          # Update committed files
+          branch_name=$(gh pr view "$pr_number" --json headRefName --jq '.headRefName')
+          git fetch origin "$branch_name"
+          git checkout "$branch_name"
+          for i in "${!regex_patterns[@]}"; do
+            pattern="${regex_patterns[i]}"
+            replacement="${replacements[i]}"
+            files=$(find . -type f -name 'CHANGELOG.md')
+            for file in $files; do
+              sed -i -E "s|$pattern|$replacement|g" "$file"
+            done
+          done
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Update changelog entries"
+          git push origin "$branch_name"

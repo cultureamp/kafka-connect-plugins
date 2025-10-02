@@ -1,0 +1,21 @@
+# Copied from https://github.com/cultureamp/ca-changesets/blob/v1/.github/workflows/kotlin-changesets.yaml
+name: Kotlin Changesets
+
+on:
+  workflow_call:
+    inputs:
+      label:
+        type: string
+
+jobs:
+  release:
+    if: github.event_name == 'push'
+    uses: ./.github/workflows/kotlin-release.yaml@${{ github.ref_name }}
+    secrets: inherit
+
+  prerelease:
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/kotlin-prerelease.yaml@${{ github.ref_name }}
+    with:
+      label: ${{ inputs.label }}
+    secrets: inherit
