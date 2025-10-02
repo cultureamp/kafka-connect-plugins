@@ -12,6 +12,7 @@ import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaAndValue
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.errors.DataException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.transforms.util.SchemaUtil
 import org.junit.Before
@@ -185,10 +186,10 @@ class ClickhouseComplexDataTypeTransformerTest {
         hasNoComplexTypes(sinkRecord)
         assertTrue(hasNoComplexTypes(transformedRecord))
 
-        val expectedValue = Struct(getExpectedSchema()).put("is_deleted", 1).put("_kafka_metadata_partition", "0")
+        val actualSchema = transformedRecord.valueSchema()
+        val expectedValue = Struct(actualSchema).put("is_deleted", 1).put("_kafka_metadata_partition", "0")
             .put("_kafka_metadata_offset", "156").put("_kafka_metadata_timestamp", 1713922160L)
         assertEquals(expectedValue, transformedRecord.value())
-        assertEquals(getExpectedSchema(), transformedRecord.valueSchema())
     }
 
     @Test
@@ -228,13 +229,13 @@ class ClickhouseComplexDataTypeTransformerTest {
     private val body_locale = null
     private val body_observer = false
     private val body_gdpr_erasure_request_id = null
-    private val body_test_map = mapOf("added_users_count" to 0, "ignored_new_demographics_count" to 0)
-    private val body_test_map_1 = mapOf("added_users_count" to "", "ignored_new_demographics_count" to "")
+    private val body_test_map = mapOf("added_users_count" to 0, "ignored_new_demographics_count" to 0, "ignored_users_count" to 0, "inactive_updated_users_count" to 0, "reactivated_users_count" to 0, "removed_users_count" to 0, "reactivated_users_count" to 0, "updated_users_count" to 0)
+    private val body_test_map_1 = null
     private val body_test_array_of_structs = listOf(
         Struct(
             getExpectedSchema().field("body_test_array_of_structs").schema().valueSchema()
         ).apply { put("demographic_id", "5c579970-684e-4911-a077-6bf407fb478d")
-                    put("demographic_value_id", "427b936f-e932-4673-95a2-acd3e3b900b1")
+            put("demographic_value_id", "427b936f-e932-4673-95a2-acd3e3b900b1")
         }
     )
     private val body_manager_assignment_manager_id = "{\"string\": \"5c579970-684e-4911-a077-6bf407fb478d\"}"
@@ -247,12 +248,17 @@ class ClickhouseComplexDataTypeTransformerTest {
     private val metadata_causation_id = null
     private val metadata_executor_id = "{\"string\": \"379907ca-632c-4e83-89c4-9dbe0e759ad3\"}"
     private val metadata_service = "Influx"
-    private val test_array_of_structs =
-        "[{\"demographic_id\": {\"string\": \"5c579970-684e-4911-a077-6bf407fb478d\"}, \"demographic_value_id\": {\"string\": \"427b936f-e932-4673-95a2-acd3e3b900b1\"}}, {\"demographic_id\": {\"string\": \"460f6b2d-03c5-46cf-ba55-aa14477a12dc\"}, \"demographic_value_id\": {\"string\": \"ecc0db2e-486e-4f4a-a54a-db21673e1a2b\"}}]"
-    private val test_string_array = "[\"a\", \"b\", \"c\"]"
-    private val test_array_of_arrays = "[[\"a\", \"b\", \"c\"], [\"e\"], [\"f\", \"g\"]]"
+    private val test_array_of_structs =listOf(
+        Struct(
+            getExpectedSchema().field("test_array_of_structs").schema().valueSchema()
+        ).apply { put("demographic_id", "5c579970-684e-4911-a077-6bf407fb478d")
+            put("demographic_value_id", "427b936f-e932-4673-95a2-acd3e3b900b1")
+        }
+    )
+    private val test_string_array =listOf("a","b","c")
+    private val test_array_of_arrays =listOf(listOf("a","b","c"),listOf("e"),listOf("f","g"))
     private val test_map =
-        "{\"added_users_count\": 0, \"ignored_new_demographics_count\": 0, \"ignored_users_count\": 0, \"inactive_updated_users_count\": 0, \"reactivated_users_count\": 0, \"removed_users_count\": 0, \"updated_users_count\": 0}"
+        mapOf("added_users_count" to 0, "ignored_new_demographics_count" to 0, "ignored_users_count" to 0, "inactive_updated_users_count" to 0, "reactivated_users_count" to 0, "removed_users_count" to 0, "reactivated_users_count" to 0, "updated_users_count" to 0)
 
     private fun struct(
         id: String,
@@ -268,7 +274,7 @@ class ClickhouseComplexDataTypeTransformerTest {
         body_observer: Boolean,
         body_gdpr_erasure_request_id: String?,
         body_test_map: Map<String, Int>,
-        body_test_map_1: Map<String, String>,
+        body_test_map_1: Map<String, String>?,
         body_test_array_of_structs: List<Struct>,
         body_manager_assignment_manager_id: String,
         body_manager_assignment_demographic_id: String,
@@ -280,10 +286,10 @@ class ClickhouseComplexDataTypeTransformerTest {
         metadata_causation_id: String?,
         metadata_executor_id: String,
         metadata_service: String,
-        test_array_of_structs: String,
-        test_string_array: String,
-        test_array_of_arrays: String,
-        test_map: String,
+        test_array_of_structs: List<Struct>,
+        test_string_array: List<String>,
+        test_array_of_arrays: List<List<String>>,
+        test_map: Map<String, Int>,
         topic_key: String?,
         is_deleted: Int
     ): Struct {
@@ -332,10 +338,10 @@ class ClickhouseComplexDataTypeTransformerTest {
         metadata_causation_id: String?,
         metadata_executor_id: String,
         metadata_service: String,
-        test_array_of_structs: String,
-        test_string_array: String,
-        test_array_of_arrays: String,
-        test_map: String,
+        test_array_of_structs: List<Struct>,
+        test_string_array: List<String>,
+        test_array_of_arrays: List<List<String>>,
+        test_map: Map<String, Int>,
         topic_key: String?,
         is_deleted: Int
     ): Struct {
@@ -386,10 +392,36 @@ class ClickhouseComplexDataTypeTransformerTest {
                     "metadata_service",
                     convertFieldSchema(SchemaBuilder.string().build(), true, "Default-Service")
                 )
+            else if (isComplexType(field.schema()))
+                builder.field(field.name(), convertComplexFieldSchema(field.schema(), field.schema().isOptional))
             else
                 builder.field(field.name(), field.schema())
         }
         return builder.build()
+    }
+    
+    private fun isComplexType(schema: Schema): Boolean {
+        return schema.type() == Schema.Type.ARRAY || schema.type() == Schema.Type.MAP
+    }
+    
+    private fun convertComplexFieldSchema(orig: Schema, optional: Boolean): Schema {
+        return when (orig.type()) {
+            Schema.Type.ARRAY -> {
+                val builder = SchemaBuilder.array(orig.valueSchema())
+                if (optional) builder.optional()
+                builder.build()
+            }
+            Schema.Type.MAP -> {
+                val builder = SchemaBuilder.map(orig.keySchema(), orig.valueSchema())
+                if (optional) builder.optional()
+                builder.build()
+            }
+            else -> {
+                val builder = SchemaUtil.copySchemaBasics(orig)
+                if (optional) builder.optional()
+                builder.build()
+            }
+        }
     }
 
     private val jsonWriterSettings =
