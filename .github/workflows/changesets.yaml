@@ -17,7 +17,7 @@ on:
 
 jobs:
   trigger:
-    uses: ./.github/workflows/kotlin-changesets.yaml@0c74aca9f30f45a3746885a7125033318f90a1f7
+    uses: ./.github/workflows/kotlin-changesets.yaml
     with:
       label: ${{ github.event.inputs.label }}
     secrets: inherit
