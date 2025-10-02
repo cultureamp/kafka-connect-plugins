@@ -104,7 +104,7 @@
             "name": "test_map",
             "type": {
               "type": "map",
-              "values": "string"
+              "values": "int"
             }
           },
           {

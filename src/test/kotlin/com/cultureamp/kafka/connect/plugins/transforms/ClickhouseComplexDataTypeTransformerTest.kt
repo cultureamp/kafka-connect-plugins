@@ -268,7 +268,7 @@ class ClickhouseComplexDataTypeTransformerTest {
     private val body_locale = null
     private val body_observer = false
     private val body_gdpr_erasure_request_id = null
-    private val body_test_map = mapOf("added_users_count" to 0, "ignored_new_demographics_count" to 0, "ignored_users_count" to 0, "inactive_updated_users_count" to 0, "reactivated_users_count" to 0, "removed_users_count" to 0, "reactivated_users_count" to 0, "updated_users_count" to 0)
+    private val body_test_map = mapOf("added_users_count" to 0, "ignored_new_demographics_count" to 0, "ignored_users_count" to 0, "inactive_updated_users_count" to 0, "reactivated_users_count" to 0, "removed_users_count" to 0, "updated_users_count" to 0)
     private val body_test_map_1 = null
     private val body_test_array_of_structs = listOf(
         Struct(
