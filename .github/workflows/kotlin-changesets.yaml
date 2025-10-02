@@ -10,12 +10,12 @@ on:
 jobs:
   release:
     if: github.event_name == 'push'
-    uses: ./.github/workflows/kotlin-release.yaml@${{ github.ref_name }}
+    uses: ./.github/workflows/kotlin-release.yaml@0c74aca9f30f45a3746885a7125033318f90a1f7
     secrets: inherit
 
   prerelease:
     if: github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/kotlin-prerelease.yaml@${{ github.ref_name }}
+    uses: ./.github/workflows/kotlin-prerelease.yaml@0c74aca9f30f45a3746885a7125033318f90a1f7
     with:
       label: ${{ inputs.label }}
     secrets: inherit
