@@ -1,0 +1,333 @@
+{
+  "type": "record",
+  "name": "Event",
+  "namespace": "com.cultureamp.employee.v1",
+  "fields": [
+    {
+      "name": "id",
+      "type": {
+        "type": "string",
+        "logicalType": "uuid"
+      }
+    },
+    {
+      "name": "account_id",
+      "type": {
+        "type": "string",
+        "logicalType": "uuid"
+      }
+    },
+    {
+      "name": "employee_id",
+      "type": {
+        "type": "string",
+        "logicalType": "uuid"
+      }
+    },
+    {
+      "name": "event_created_at",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      }
+    },
+    {
+      "name": "body",
+      "type": [ "null", 
+      {
+        "type": "record",
+        "name": "Employee",
+        "namespace": "com.cultureamp.employee.v1",
+        "fields": [
+          {
+            "name": "source",
+            "type": [
+              "null",
+              "string"
+            ],
+            "default": null
+          },
+          {
+            "name": "employee_id",
+            "type": [
+              "null",
+              "string"
+            ],
+            "default": null
+          },
+          {
+            "name": "email",
+            "type": [
+              "null",
+              "string"
+            ],
+            "default": null
+          },
+          {
+            "name": "name",
+            "type": [
+              "null",
+              "string"
+            ],
+            "default": null
+          },
+          {
+            "name": "preferred_name",
+            "type": [
+              "null",
+              "string"
+            ],
+            "default": null
+          },
+          {
+            "name": "locale",
+            "type": [
+              "null",
+              "string"
+            ],
+            "default": null
+          },
+          {
+            "name": "observer",
+            "type": "boolean",
+            "default": true
+          },
+          {
+            "name": "gdpr_erasure_request_id",
+            "type": [
+              "null",
+              "string"
+            ],
+            "default": null
+          },
+          {
+            "name": "test_map",
+            "type": {
+              "type": "map",
+              "values": "int"
+            }
+          },
+          {
+            "name": "test_map_1",
+            "type": [
+              "null",
+              {
+                "type": "map",
+                "values": "int"
+              }
+            ],
+            "default": null
+          },
+          {
+            "name": "test_array_of_structs",
+            "type": {
+              "type": "array",
+              "items": {
+                "type": "record",
+                "name": "DemographicValueAssignmentTest",
+                "namespace": "com.cultureamp.employee.v1",
+                "fields": [
+                  {
+                    "name": "demographic_id",
+                    "type": {
+                      "type": "string",
+                      "logicalType": "uuid"
+                    }
+                  },
+                  {
+                    "name": "demographic_value_id",
+                    "type": [
+                      "null",
+                      {
+                        "type": "string",
+                        "logicalType": "uuid"
+                      }
+                    ],
+                    "default": null
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "manager_assignment",
+            "type": [
+              "null",
+              {
+                "type": "record",
+                "name": "ManagerAssignment",
+                "namespace": "com.cultureamp.employee.v1",
+                "fields": [
+                  {
+                    "name": "manager_id",
+                    "type": [
+                      "null",
+                      {
+                        "type": "string",
+                        "logicalType": "uuid"
+                      }
+                    ],
+                    "default": null
+                  },
+                  {
+                    "name": "demographic_id",
+                    "type": {
+                      "type": "string",
+                      "logicalType": "uuid"
+                    }
+                  }
+                ]
+              }
+            ],
+            "default": null
+          },
+          {
+            "name": "erased",
+            "type": "boolean"
+          },
+          {
+            "name": "created_at",
+            "type": {
+              "type": "long",
+              "logicalType": "timestamp-millis"
+            }
+          },
+          {
+            "name": "updated_at",
+            "type": {
+              "type": "long",
+              "logicalType": "timestamp-millis"
+            }
+          },
+          {
+            "name": "deleted_at",
+            "type": [
+              "null",
+              {
+                "type": "long",
+                "logicalType": "timestamp-millis"
+              }
+            ],
+            "default": null
+          }
+        ]
+      }
+      ]
+    },
+    {
+      "name": "metadata",
+      "type": {
+        "type": "record",
+        "name": "Metadata",
+        "namespace": "com.cultureamp.employee.v1",
+        "fields": [
+          {
+            "name": "correlation_id",
+            "type": [
+              "null",
+              {
+                "type": "string",
+                "logicalType": "uuid"
+              }
+            ],
+            "default": null
+          },
+          {
+            "name": "causation_id",
+            "type": [
+              "null",
+              {
+                "type": "string",
+                "logicalType": "uuid"
+              }
+            ],
+            "default": null
+          },
+          {
+            "name": "executor_id",
+            "type": [
+              "null",
+              {
+                "type": "string",
+                "logicalType": "uuid"
+              }
+            ],
+            "default": null
+          },
+          {
+            "name": "service",
+            "type": "string",
+            "default": "Default-Service"
+          }
+        ]
+      }
+    },
+    {
+      "name": "test_array_of_structs",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "DemographicValueAssignment",
+          "namespace": "com.cultureamp.employee.v1",
+          "fields": [
+            {
+              "name": "demographic_id",
+              "type": {
+                "type": "string",
+                "logicalType": "uuid"
+              }
+            },
+            {
+              "name": "demographic_value_id",
+              "type": [
+                "null",
+                {
+                  "type": "string",
+                  "logicalType": "uuid"
+                }
+              ],
+              "default": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "test_string_array",
+      "type": [
+        "null",
+        {
+          "type": "array",
+          "items": "string"
+        }
+      ],
+      "default": null
+    },
+    {
+      "name": "test_array_of_arrays",
+      "type": [
+        "null",
+        {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": "string"
+          }
+        }
+      ],
+      "default": null
+    },
+    {
+      "name": "test_map",
+      "type": [
+        "null",
+        {
+          "type": "map",
+          "values": "int"
+        }
+      ],
+      "default": null
+    }
+  ]
+}
