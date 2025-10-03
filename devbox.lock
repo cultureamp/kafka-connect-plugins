@@ -11,6 +11,14 @@
       "source": "devbox-search",
       "version": "17.0.16+8",
       "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "path": "/nix/store/c0zwkd0idwp22ic1aw5ax3ncn0648689-zulu-ca-jdk-17.0.12",
+              "default": true
+            }
+          ]
+        },
         "aarch64-linux": {
           "outputs": [
             {
@@ -38,6 +46,21 @@
             }
           ],
           "store_path": "/nix/store/pkhdb9invwiad9c8qvbzhkyvl4yblwd6-openjdk-17.0.16+8"
+        }
+      }
+    },
+    "nodejs": {
+      "plugin_version": "0.0.2",
+      "resolved": "github:NixOS/nixpkgs/647e5c14cbd5067f44ac86b74f014962df460840?narHash=sha256-JVZl8NaVRYb0%2B381nl7LvPE%2BA774%2FdRpif01FKLrYFQ%3D#nodejs",
+      "source": "nixpkg",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "path": "/nix/store/3scj3c1qxh5iclf8jy5hbl9pki40y77n-nodejs-22.19.0",
+              "default": true
+            }
+          ]
         }
       }
     }

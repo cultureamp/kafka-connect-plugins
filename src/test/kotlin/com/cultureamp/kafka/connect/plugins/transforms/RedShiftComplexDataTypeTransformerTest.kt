@@ -13,7 +13,7 @@ import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.transforms.util.SchemaUtil
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
 import java.io.File
 import java.nio.file.Files
 import kotlin.test.Test
@@ -49,7 +49,7 @@ class RedShiftComplexDataTypeTransformerTest {
         return hasNoComplexTypes
     }
 
-    @Before
+    @BeforeEach
     fun setUp() {
         transformer = RedShiftComplexDataTypeTransformer()
     }

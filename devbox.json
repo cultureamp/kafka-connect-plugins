@@ -9,4 +9,11 @@
      */
     "NETSKOPE_CERT_PATH": "/Library/Application Support/Netskope/STAgent/data/nscacert.pem",
   },
+  "$schema":  "https://raw.githubusercontent.com/jetify-com/devbox/0.13.5/.schema/devbox.schema.json",
+  "packages": {
+    "jdk": "17"
+  },
+  "include":  ["github:cultureamp/devbox-extras?dir=plugins/ca-changesets"],
+  "shell": {
+  }
 }

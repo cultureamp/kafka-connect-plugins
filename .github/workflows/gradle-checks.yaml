@@ -1,0 +1,39 @@
+name: Gradle checks
+
+on:
+  push:
+    branches-ignore:
+      - master
+      - main
+    paths:
+      - "**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up requested version of Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Build with Gradle
+        run: ./gradlew build
+        env:
+          USERNAME: ${{ github.actor }}
+          PACKAGE_READ_TOKEN: ${{ secrets.PACKAGE_REGISTRY_ACCESS_TOKEN }}
+      - name: Run Snyk Vulnerability Scan
+        uses: snyk/actions/gradle-jdk17@master
+        continue-on-error: true
+        with:
+          args: --all-projects --severity-threshold=high
+          command: test
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_ACTION_TOKEN }}
