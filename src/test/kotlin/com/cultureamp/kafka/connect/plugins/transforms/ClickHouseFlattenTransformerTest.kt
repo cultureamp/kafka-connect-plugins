@@ -14,7 +14,7 @@ import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.errors.DataException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.transforms.util.SchemaUtil
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
 import java.io.File
 import java.nio.file.Files
 import kotlin.test.Test
@@ -39,7 +39,7 @@ class ClickHouseFlattenTransformerTest {
         return hasNoComplexTypes
     }
 
-    @Before
+    @BeforeEach
     fun setUp() {
         transformer = ClickHouseFlattenTransformer()
     }
@@ -47,7 +47,7 @@ class ClickHouseFlattenTransformerTest {
     @Test
     fun `can transform ECST Employee data with null body`() {
 
-        val avroRecord = payload("com/cultureamp/employee-data.employees-v2.json")
+        val avroRecord = payload("com/cultureamp/employee-data.employees-v2-clickhouse.json")
         val sinkRecord = SinkRecord(
             "employee data ecst test",
             1,
@@ -100,7 +100,7 @@ class ClickHouseFlattenTransformerTest {
     @Test
     fun `can transform ECST Employee data that has key as field`() {
 
-        val avroRecord = payload("com/cultureamp/employee-data.employees-v1.json")
+        val avroRecord = payload("com/cultureamp/employee-data.employees-v1-clickhouse.json")
         val sinkRecord = SinkRecord(
             "employee data ecst test",
             1,
@@ -185,7 +185,7 @@ class ClickHouseFlattenTransformerTest {
     @Test
     fun `can transform ECST Employee data with tombstone message and non-null key`() {
 
-        val avroRecord = payload("com/cultureamp/employee-data.employees-v1.json")
+        val avroRecord = payload("com/cultureamp/employee-data.employees-v1-clickhouse.json")
         val sinkRecord = SinkRecord(
             "employee data ecst test",
             0,
@@ -206,7 +206,7 @@ class ClickHouseFlattenTransformerTest {
     @Test
     fun `can transform ECST Employee data with tombstone message and null key`() {
 
-        val avroRecord = payload("com/cultureamp/employee-data.employees-v1.json")
+        val avroRecord = payload("com/cultureamp/employee-data.employees-v1-clickhouse.json")
         val sinkRecord = SinkRecord(
             "employee data ecst test",
             0,
@@ -245,7 +245,7 @@ class ClickHouseFlattenTransformerTest {
         assertTrue(hasNoComplexTypes(transformedRecord))
     }
 
-    private val sourceSchema = AvroSchema.fromJson(fileContent("com/cultureamp/employee-data.employees-value-v1.avsc"))
+    private val sourceSchema = AvroSchema.fromJson(fileContent("com/cultureamp/employee-data.employees-value-v1-clickhouse.avsc"))
 
     private fun payload(fileName: String): SchemaAndValue {
         val document = ConfigHelper.documentFromString(fileContent(fileName)).get()
@@ -469,7 +469,7 @@ class ClickHouseFlattenTransformerTest {
 
     private fun getExpectedSchema(): Schema {
         // Replicate exactly how the transformer builds its schema
-        val sourceSchema = AvroSchema.fromJson(fileContent("com/cultureamp/employee-data.employees-value-v1.avsc"))
+        val sourceSchema = AvroSchema.fromJson(fileContent("com/cultureamp/employee-data.employees-value-v1-clickhouse.avsc"))
         var builder: SchemaBuilder = SchemaUtil.copySchemaBasics(SchemaBuilder.struct())
 
         if (sourceSchema != null) {
