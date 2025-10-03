@@ -1,6 +1,5 @@
 package com.cultureamp.kafka.connect.plugins.transforms
 
-import com.cultureamp.employee.v1.BodyTestArrayItem
 import com.mongodb.kafka.connect.source.MongoSourceConfig
 import com.mongodb.kafka.connect.source.json.formatter.JsonWriterSettingsProvider
 import com.mongodb.kafka.connect.source.schema.AvroSchema
@@ -23,11 +22,11 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Test class for ClickhouseComplexDataTypeTransformer
+ * Test class for ClickHouseFlattenTransformer
  */
-class ClickhouseComplexDataTypeTransformerTest {
+class ClickHouseFlattenTransformerTest {
 
-    private lateinit var transformer: ClickhouseComplexDataTypeTransformer<SinkRecord>
+    private lateinit var transformer: ClickHouseFlattenTransformer<SinkRecord>
 
     private fun hasNoComplexTypes(obj: SinkRecord): Boolean {
 
@@ -42,9 +41,8 @@ class ClickhouseComplexDataTypeTransformerTest {
 
     @Before
     fun setUp() {
-        transformer = ClickhouseComplexDataTypeTransformer()
+        transformer = ClickHouseFlattenTransformer()
     }
-
 
     @Test
     fun `can transform ECST Employee data with null body`() {
@@ -65,19 +63,19 @@ class ClickhouseComplexDataTypeTransformerTest {
         assertTrue(hasNoComplexTypes(transformedRecord))
 
         val actualSchema = transformedRecord.valueSchema()
-        
+
         // Create test_array_of_structs using the actual schema
         val actualArrayStructs = listOf(
-            Struct(actualSchema.field("test_array_of_structs").schema().valueSchema()).apply { 
+            Struct(actualSchema.field("test_array_of_structs").schema().valueSchema()).apply {
                 put("demographic_id", "{\"string\": \"5c579970-684e-4911-a077-6bf407fb478d\"}")
                 put("demographic_value_id", "{\"string\": \"427b936f-e932-4673-95a2-acd3e3b900b1\"}")
             },
-            Struct(actualSchema.field("test_array_of_structs").schema().valueSchema()).apply { 
+            Struct(actualSchema.field("test_array_of_structs").schema().valueSchema()).apply {
                 put("demographic_id", "{\"string\": \"460f6b2d-03c5-46cf-ba55-aa14477a12dc\"}")
                 put("demographic_value_id", "{\"string\": \"ecc0db2e-486e-4f4a-a54a-db21673e1a2b\"}")
             }
         )
-        
+
         val expectedValue = Struct(actualSchema)
             .put("id", id)
             .put("account_id", account_id)
@@ -121,30 +119,30 @@ class ClickhouseComplexDataTypeTransformerTest {
 
         // Use the actual schema from the transformer (avoid the schema comparison issue)
         val actualSchema = transformedRecord.valueSchema()
-        
+
         // Create proper test data that matches what the transformer produces
         val actualBodyArrayStructs = listOf(
-            Struct(actualSchema.field("body_test_array_of_structs").schema().valueSchema()).apply { 
+            Struct(actualSchema.field("body_test_array_of_structs").schema().valueSchema()).apply {
                 put("demographic_id", "{\"string\": \"5c579970-684e-4911-a077-6bf407fb478d\"}")
                 put("demographic_value_id", "{\"string\": \"427b936f-e932-4673-95a2-acd3e3b900b1\"}")
             },
-            Struct(actualSchema.field("body_test_array_of_structs").schema().valueSchema()).apply { 
+            Struct(actualSchema.field("body_test_array_of_structs").schema().valueSchema()).apply {
                 put("demographic_id", "{\"string\": \"460f6b2d-03c5-46cf-ba55-aa14477a12dc\"}")
                 put("demographic_value_id", "{\"string\": \"ecc0db2e-486e-4f4a-a54a-db21673e1a2b\"}")
             }
         )
-        
+
         val actualTestArrayStructs = listOf(
-            Struct(actualSchema.field("test_array_of_structs").schema().valueSchema()).apply { 
+            Struct(actualSchema.field("test_array_of_structs").schema().valueSchema()).apply {
                 put("demographic_id", "{\"string\": \"5c579970-684e-4911-a077-6bf407fb478d\"}")
                 put("demographic_value_id", "{\"string\": \"427b936f-e932-4673-95a2-acd3e3b900b1\"}")
             },
-            Struct(actualSchema.field("test_array_of_structs").schema().valueSchema()).apply { 
+            Struct(actualSchema.field("test_array_of_structs").schema().valueSchema()).apply {
                 put("demographic_id", "{\"string\": \"460f6b2d-03c5-46cf-ba55-aa14477a12dc\"}")
                 put("demographic_value_id", "{\"string\": \"ecc0db2e-486e-4f4a-a54a-db21673e1a2b\"}")
             }
         )
-        
+
         val expectedValue = struct(
             id,
             account_id,
@@ -273,7 +271,8 @@ class ClickhouseComplexDataTypeTransformerTest {
     private val body_test_array_of_structs = listOf(
         Struct(
             getExpectedSchema().field("body_test_array_of_structs").schema().valueSchema()
-        ).apply { put("demographic_id", "5c579970-684e-4911-a077-6bf407fb478d")
+        ).apply {
+            put("demographic_id", "5c579970-684e-4911-a077-6bf407fb478d")
             put("demographic_value_id", "427b936f-e932-4673-95a2-acd3e3b900b1")
         }
     )
@@ -290,19 +289,19 @@ class ClickhouseComplexDataTypeTransformerTest {
     private val test_array_of_structs = listOf(
         Struct(
             getExpectedSchema().field("test_array_of_structs").schema().valueSchema()
-        ).apply { 
+        ).apply {
             put("demographic_id", "{\"string\": \"5c579970-684e-4911-a077-6bf407fb478d\"}")
             put("demographic_value_id", "{\"string\": \"427b936f-e932-4673-95a2-acd3e3b900b1\"}")
         },
         Struct(
             getExpectedSchema().field("test_array_of_structs").schema().valueSchema()
-        ).apply { 
+        ).apply {
             put("demographic_id", "{\"string\": \"460f6b2d-03c5-46cf-ba55-aa14477a12dc\"}")
             put("demographic_value_id", "{\"string\": \"ecc0db2e-486e-4f4a-a54a-db21673e1a2b\"}")
         }
     )
-    private val test_string_array =listOf("a","b","c")
-    private val test_array_of_arrays =listOf(listOf("a","b","c"),listOf("e"),listOf("f","g"))
+    private val test_string_array = listOf("a", "b", "c")
+    private val test_array_of_arrays = listOf(listOf("a", "b", "c"), listOf("e"), listOf("f", "g"))
     private val test_map =
         mapOf("added_users_count" to 0, "ignored_new_demographics_count" to 0, "ignored_users_count" to 0, "inactive_updated_users_count" to 0, "reactivated_users_count" to 0, "removed_users_count" to 0, "reactivated_users_count" to 0, "updated_users_count" to 0)
 
@@ -472,26 +471,26 @@ class ClickhouseComplexDataTypeTransformerTest {
         // Replicate exactly how the transformer builds its schema
         val sourceSchema = AvroSchema.fromJson(fileContent("com/cultureamp/employee-data.employees-value-v1.avsc"))
         var builder: SchemaBuilder = SchemaUtil.copySchemaBasics(SchemaBuilder.struct())
-        
+
         if (sourceSchema != null) {
             builder = SchemaUtil.copySchemaBasics(sourceSchema, SchemaBuilder.struct())
             buildUpdatedSchema(sourceSchema, "", builder, true)
         }
-        
+
         // Add the metadata fields exactly like the transformer does
         builder.field("topic_key", convertFieldSchema(SchemaBuilder.string().build(), false, ""))
         builder.field("is_deleted", convertFieldSchema(SchemaBuilder.int32().build(), false, 0))
         builder.field("_kafka_metadata_partition", convertFieldSchema(SchemaBuilder.string().build(), true, null))
         builder.field("_kafka_metadata_offset", convertFieldSchema(SchemaBuilder.string().build(), true, null))
         builder.field("_kafka_metadata_timestamp", convertFieldSchema(SchemaBuilder.int64().build(), true, null))
-        
+
         return builder.build()
     }
-    
+
     private fun isComplexType(schema: Schema): Boolean {
         return schema.type() == Schema.Type.ARRAY || schema.type() == Schema.Type.MAP
     }
-    
+
     private fun convertComplexFieldSchema(orig: Schema, optional: Boolean): Schema {
         return when (orig.type()) {
             Schema.Type.ARRAY -> {

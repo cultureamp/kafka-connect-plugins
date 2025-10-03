@@ -18,20 +18,25 @@ import org.slf4j.LoggerFactory
 import java.util.Collections
 
 /**
- * A generic custom transform for ClickHouse
+ * A ClickHouse-optimized flatten transformer that preserves native array and map types.
  *
- * This transformer class manipulates fields in schemas by turning them from arrays into strings
- * which is necessary for this:
- * https://stackoverflow.com/questions/61360342/kafka-connect-flatten-transformation-of-a-postgres-record-with-array-field issue to be solved
- * as ClickHouse requires proper handling of complex data types and arrays must be converted into strings.
- * See https://docs.confluent.io/platform/current/connect/javadocs/javadoc/org/apache/kafka/connect/transforms/Transformation.html.
+ * This transformer flattens nested structures while preserving the semantic meaning of complex data types.
+ * Unlike standard flatten transformers that convert arrays/maps to JSON strings, this transformer
+ * maintains native arrays and maps, which is optimal for ClickHouse's columnar storage.
+ *
+ * Features:
+ * - Flattens nested object structures (body.field -> body_field)
+ * - Preserves arrays as native arrays (not JSON strings)
+ * - Preserves maps as native maps (not JSON strings)
+ * - Adds Kafka metadata fields (_kafka_metadata_*)
+ * - Handles tombstone records with is_deleted flag
  *
  * @param R is ConnectRecord<R>.
- * @constructor Creates a ClickhouseComplexDataTypeTransformer Transformation<R> for a given ConnectRecord<T>
+ * @constructor Creates a ClickHouseFlattenTransformer Transformation<R> for a given ConnectRecord<T>
  */
-class ClickhouseComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<R> {
+class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
     private val logger = LoggerFactory.getLogger(this::class.java.canonicalName)
-    private val purpose = "ClickHouse™ Flatten and Complex Data Types to String Transform"
+    private val purpose = "ClickHouse™ Flatten Transform with Native Type Preservation"
     private val schemaUpdateCache = SynchronizedCache<Schema, Schema>(LRUCache<Schema, Schema>(16))
 
     override fun configure(configs: MutableMap<String, *>?) {}
