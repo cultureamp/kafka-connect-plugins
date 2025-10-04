@@ -5,7 +5,7 @@
 // Used in build.gradle.kts to set the project version
 buildscript {
   repositories { mavenCentral() }
-  dependencies { classpath("com.google.code.gson:gson:2.8.9") }
+  dependencies { classpath("com.google.code.gson:gson:2.13.2") }
 }
 
 data class PackageJSON(var name: String, var version: String)
