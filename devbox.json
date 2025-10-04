@@ -1,7 +1,7 @@
 {
   "$schema":  "https://raw.githubusercontent.com/jetify-com/devbox/0.13.5/.schema/devbox.schema.json",
   "packages": {
-    "jdk": "17"
+    "jdk": "17.0.12"
   },
   "include":  ["github:cultureamp/devbox-extras?dir=plugins/ca-changesets"],
   "shell": {
