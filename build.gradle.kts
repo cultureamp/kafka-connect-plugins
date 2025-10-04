@@ -38,7 +38,7 @@ dependencies {
     implementation("org.apache.kafka:connect-api:$kafkaVersion")
     implementation("org.apache.kafka:connect-json:$kafkaVersion")
     implementation("org.apache.kafka:connect-transforms:$kafkaVersion")
-    implementation("org.apache.avro:avro:1.11.3")
+    implementation("org.apache.avro:avro:1.12.0")
 
     // Use the Kotlin JUnit integration.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
