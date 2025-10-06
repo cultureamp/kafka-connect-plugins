@@ -108,7 +108,7 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
         }
     }
 
-    private fun buildUpdatedSchema(schema: Schema, fieldNamePrefix: String, newSchema: SchemaBuilder, optional: Boolean) {
+    public fun buildUpdatedSchema(schema: Schema, fieldNamePrefix: String, newSchema: SchemaBuilder, optional: Boolean) {
         for (field in schema.fields()) {
             val fieldName = fieldName(fieldNamePrefix, field.name())
             val fieldDefaultValue = if (field.schema().defaultValue() != null) {
