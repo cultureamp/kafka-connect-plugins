@@ -65,7 +65,7 @@ class ClickHouseFlattenTransformerTest {
         val actualSchema = transformedRecord.valueSchema()
 
         // Create test_array_of_structs using the actual schema
-        val actualArrayStructs = listOf(
+        val test_array_of_structs = listOf(
             Struct(actualSchema.field("test_array_of_structs").schema().valueSchema()).apply {
                 put("demographic_id", "{\"string\": \"5c579970-684e-4911-a077-6bf407fb478d\"}")
                 put("demographic_value_id", "{\"string\": \"427b936f-e932-4673-95a2-acd3e3b900b1\"}")
@@ -85,7 +85,7 @@ class ClickHouseFlattenTransformerTest {
             .put("metadata_causation_id", metadata_causation_id)
             .put("metadata_executor_id", metadata_executor_id)
             .put("metadata_service", "Default-Service")
-            .put("test_array_of_structs", actualArrayStructs)
+            .put("test_array_of_structs", test_array_of_structs)
             .put("test_string_array", test_string_array)
             .put("test_array_of_arrays", test_array_of_arrays)
             .put("test_map", test_map)
@@ -121,7 +121,7 @@ class ClickHouseFlattenTransformerTest {
         val actualSchema = transformedRecord.valueSchema()
 
         // Create proper test data that matches what the transformer produces
-        val actualBodyArrayStructs = listOf(
+        val body_test_array_of_structs = listOf(
             Struct(actualSchema.field("body_test_array_of_structs").schema().valueSchema()).apply {
                 put("demographic_id", "{\"string\": \"5c579970-684e-4911-a077-6bf407fb478d\"}")
                 put("demographic_value_id", "{\"string\": \"427b936f-e932-4673-95a2-acd3e3b900b1\"}")
@@ -132,7 +132,7 @@ class ClickHouseFlattenTransformerTest {
             }
         )
 
-        val actualTestArrayStructs = listOf(
+        val test_array_of_structs = listOf(
             Struct(actualSchema.field("test_array_of_structs").schema().valueSchema()).apply {
                 put("demographic_id", "{\"string\": \"5c579970-684e-4911-a077-6bf407fb478d\"}")
                 put("demographic_value_id", "{\"string\": \"427b936f-e932-4673-95a2-acd3e3b900b1\"}")
@@ -158,7 +158,7 @@ class ClickHouseFlattenTransformerTest {
             body_gdpr_erasure_request_id,
             body_test_map,
             body_test_map_1,
-            actualBodyArrayStructs,
+            body_test_array_of_structs,
             body_manager_assignment_manager_id,
             body_manager_assignment_demographic_id,
             body_erased,
@@ -169,7 +169,7 @@ class ClickHouseFlattenTransformerTest {
             metadata_causation_id,
             metadata_executor_id,
             metadata_service,
-            actualTestArrayStructs,
+            test_array_of_structs,
             test_string_array,
             test_array_of_arrays,
             test_map,
@@ -268,14 +268,6 @@ class ClickHouseFlattenTransformerTest {
     private val body_gdpr_erasure_request_id = null
     private val body_test_map = mapOf("added_users_count" to 0, "ignored_new_demographics_count" to 0, "ignored_users_count" to 0, "inactive_updated_users_count" to 0, "reactivated_users_count" to 0, "removed_users_count" to 0, "updated_users_count" to 0)
     private val body_test_map_1 = null
-    private val body_test_array_of_structs = listOf(
-        Struct(
-            getExpectedSchema().field("body_test_array_of_structs").schema().valueSchema()
-        ).apply {
-            put("demographic_id", "5c579970-684e-4911-a077-6bf407fb478d")
-            put("demographic_value_id", "427b936f-e932-4673-95a2-acd3e3b900b1")
-        }
-    )
     private val body_manager_assignment_manager_id = "{\"string\": \"5c579970-684e-4911-a077-6bf407fb478d\"}"
     private val body_manager_assignment_demographic_id = "{\"string\": \"427b936f-e932-4673-95a2-acd3e3b900b1\"}"
     private val body_erased = false
@@ -286,20 +278,6 @@ class ClickHouseFlattenTransformerTest {
     private val metadata_causation_id = null
     private val metadata_executor_id = "{\"string\": \"379907ca-632c-4e83-89c4-9dbe0e759ad3\"}"
     private val metadata_service = "Influx"
-    private val test_array_of_structs = listOf(
-        Struct(
-            getExpectedSchema().field("test_array_of_structs").schema().valueSchema()
-        ).apply {
-            put("demographic_id", "{\"string\": \"5c579970-684e-4911-a077-6bf407fb478d\"}")
-            put("demographic_value_id", "{\"string\": \"427b936f-e932-4673-95a2-acd3e3b900b1\"}")
-        },
-        Struct(
-            getExpectedSchema().field("test_array_of_structs").schema().valueSchema()
-        ).apply {
-            put("demographic_id", "{\"string\": \"460f6b2d-03c5-46cf-ba55-aa14477a12dc\"}")
-            put("demographic_value_id", "{\"string\": \"ecc0db2e-486e-4f4a-a54a-db21673e1a2b\"}")
-        }
-    )
     private val test_string_array = listOf("a", "b", "c")
     private val test_array_of_arrays = listOf(listOf("a", "b", "c"), listOf("e"), listOf("f", "g"))
     private val test_map =
