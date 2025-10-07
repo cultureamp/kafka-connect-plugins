@@ -1,6 +1,5 @@
 package com.cultureamp.kafka.connect.plugins.transforms
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.kafka.common.cache.LRUCache
 import org.apache.kafka.common.cache.SynchronizedCache
 import org.apache.kafka.common.config.ConfigDef
@@ -222,6 +221,5 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
         return newRecord(record, updatedSchema, updatedValue)
     }
 
-    private val objectMapper = ObjectMapper()
     private val jsonConverter = JsonConverter()
 }
