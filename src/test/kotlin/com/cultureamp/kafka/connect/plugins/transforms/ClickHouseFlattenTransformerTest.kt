@@ -25,16 +25,10 @@ class ClickHouseFlattenTransformerTest {
 
     private lateinit var transformer: ClickHouseFlattenTransformer<SinkRecord>
 
-    private fun hasNoComplexTypes(obj: SinkRecord): Boolean {
-
-        var hasNoComplexTypes = true
-        for (field in obj.valueSchema().fields()) {
-            if (field.schema().type() == Schema.Type.STRUCT) {
-                hasNoComplexTypes = false
-            }
+    private fun hasNoComplexTypes(obj: SinkRecord): Boolean = 
+        obj.valueSchema().fields().none { field -> 
+            field.schema().type() == Schema.Type.STRUCT
         }
-        return hasNoComplexTypes
-    }
 
     @BeforeEach
     fun setUp() {
