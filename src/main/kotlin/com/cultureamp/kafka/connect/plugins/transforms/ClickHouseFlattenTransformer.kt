@@ -199,5 +199,4 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
         }
         return newRecord(record, updatedSchema, updatedValue)
     }
-
 }
