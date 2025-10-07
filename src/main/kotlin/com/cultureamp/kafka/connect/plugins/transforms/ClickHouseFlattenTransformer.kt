@@ -7,14 +7,10 @@ import org.apache.kafka.connect.connector.ConnectRecord
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
-import org.apache.kafka.connect.errors.DataException
-import org.apache.kafka.connect.json.JsonConverter
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.transforms.Transformation
 import org.apache.kafka.connect.transforms.util.Requirements
 import org.apache.kafka.connect.transforms.util.SchemaUtil
-import org.slf4j.LoggerFactory
-import java.util.Collections
 
 /**
  * A ClickHouse-optimized flatten transformer that preserves native array and map types.
@@ -24,17 +20,17 @@ import java.util.Collections
  * maintains native arrays and maps, which is optimal for ClickHouse's columnar storage.
  *
  * Features:
- * - Flattens nested object structures (body.field -> body_field)
+ * - Flattens the top-level nested object structures (body.field -> body_field)
+ * - Lower-level nested object structures are preserved as their composite types in composite columns (`body.array_field` -> `body_array_field` - type `Array` - `body.composite_field` -> `body_composite_field` - Type `Tuple` or `Nested`)
  * - Preserves arrays as native arrays (not JSON strings)
  * - Preserves maps as native maps (not JSON strings)
  * - Adds Kafka metadata fields (_kafka_metadata_*)
- * - Handles tombstone records with is_deleted flag
+ * - Handles deleted records with is_deleted flag
  *
  * @param R is ConnectRecord<R>.
  * @constructor Creates a ClickHouseFlattenTransformer Transformation<R> for a given ConnectRecord<T>
  */
 class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
-    private val logger = LoggerFactory.getLogger(this::class.java.canonicalName)
     private val purpose = "ClickHouse™ Flatten Transform with Native Type Preservation"
     private val schemaUpdateCache = SynchronizedCache<Schema, Schema>(LRUCache<Schema, Schema>(16))
 
@@ -47,13 +43,7 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
     override fun close() {}
 
     override fun apply(record: R): R {
-        try {
-            return targetPayload(record)
-        } catch (e: Exception) {
-            logger.error("Exception: ", e)
-            logger.error("Record Received: " + record.value())
-            throw e
-        }
+        return targetPayload(record)
     }
 
     private fun newRecord(record: R, schema: Schema, value: Struct?): R {
@@ -68,13 +58,12 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
         )
     }
 
-    private fun fieldName(prefix: String, fieldName: String): String {
+    private fun fieldName(prefix: String, fieldName: String): String =
         if (prefix.isEmpty()) {
-            return fieldName
+            fieldName
         } else {
-            return (prefix + '_' + fieldName)
+            (prefix + '_' + fieldName)
         }
-    }
 
     private fun convertFieldSchema(orig: Schema, optional: Boolean, defaultFromParent: Any?): Schema {
         // Note that we don't use the schema translation cache here. It might save us a bit of effort, but we really
@@ -107,7 +96,7 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
         }
     }
 
-    public fun buildUpdatedSchema(schema: Schema, fieldNamePrefix: String, newSchema: SchemaBuilder, optional: Boolean) {
+    fun buildUpdatedSchema(schema: Schema, fieldNamePrefix: String, newSchema: SchemaBuilder, optional: Boolean) {
         for (field in schema.fields()) {
             val fieldName = fieldName(fieldNamePrefix, field.name())
             val fieldDefaultValue = if (field.schema().defaultValue() != null) {
@@ -119,23 +108,19 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
                 null
             }
             when (field.schema().type()) {
-                Schema.Type.INT8 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), optional, fieldDefaultValue))
-                Schema.Type.INT16 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), optional, fieldDefaultValue))
-                Schema.Type.INT32 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), optional, fieldDefaultValue))
-                Schema.Type.INT64 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), optional, fieldDefaultValue))
-                Schema.Type.FLOAT32 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), optional, fieldDefaultValue))
-                Schema.Type.FLOAT64 -> newSchema.field(fieldName, convertFieldSchema(field.schema(), optional, fieldDefaultValue))
-                Schema.Type.BOOLEAN -> newSchema.field(fieldName, convertFieldSchema(field.schema(), optional, fieldDefaultValue))
-                Schema.Type.STRING -> newSchema.field(fieldName, convertFieldSchema(field.schema(), optional, fieldDefaultValue))
+                Schema.Type.INT8,
+                Schema.Type.INT16,
+                Schema.Type.INT32,
+                Schema.Type.INT64,
+                Schema.Type.FLOAT32,
+                Schema.Type.FLOAT64,
+                Schema.Type.BOOLEAN,
+                Schema.Type.STRING,
                 Schema.Type.BYTES -> newSchema.field(fieldName, convertFieldSchema(field.schema(), optional, fieldDefaultValue))
                 // ARRAY and MAP keep their original types, no conversion to string
-                Schema.Type.ARRAY -> newSchema.field(fieldName, convertComplexFieldSchema(field.schema(), optional))
+                Schema.Type.ARRAY,
                 Schema.Type.MAP -> newSchema.field(fieldName, convertComplexFieldSchema(field.schema(), optional))
                 Schema.Type.STRUCT -> buildUpdatedSchema(field.schema(), fieldName, newSchema, optional)
-                else -> throw DataException(
-                    "Flatten transformation does not support " + field.schema().type() +
-                        " for record with schemas (for field " + fieldName + ")."
-                )
             }
         }
     }
@@ -157,22 +142,18 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
                 value = field.schema().defaultValue()
             }
             when (field.schema().type()) {
-                Schema.Type.INT8 -> newRecord.put(fieldName, value)
-                Schema.Type.INT16 -> newRecord.put(fieldName, value)
-                Schema.Type.INT32 -> newRecord.put(fieldName, value)
-                Schema.Type.INT64 -> newRecord.put(fieldName, value)
-                Schema.Type.FLOAT32 -> newRecord.put(fieldName, value)
-                Schema.Type.FLOAT64 -> newRecord.put(fieldName, value)
-                Schema.Type.BOOLEAN -> newRecord.put(fieldName, value)
-                Schema.Type.STRING -> newRecord.put(fieldName, value)
-                Schema.Type.BYTES -> newRecord.put(fieldName, value)
-                Schema.Type.ARRAY -> newRecord.put(fieldName, value)
+                Schema.Type.INT8,
+                Schema.Type.INT16,
+                Schema.Type.INT32,
+                Schema.Type.INT64,
+                Schema.Type.FLOAT32,
+                Schema.Type.FLOAT64,
+                Schema.Type.BOOLEAN,
+                Schema.Type.STRING,
+                Schema.Type.BYTES,
+                Schema.Type.ARRAY,
                 Schema.Type.MAP -> newRecord.put(fieldName, value)
                 Schema.Type.STRUCT -> buildWithSchema(record.getStruct(field.name()), fieldName, newRecord)
-                else -> throw DataException(
-                    "Flatten transformation does not support " + field.schema().type() +
-                        " for record with schemas (for field " + fieldName + ")."
-                )
             }
         }
     }
@@ -181,8 +162,6 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
         val sourceValue = Requirements.requireStructOrNull(record.value(), purpose)
         val sourceSchema = record.valueSchema()
         var updatedSchema = schemaUpdateCache.get(sourceSchema)
-        val props = Collections.singletonMap("schemas.enable", false)
-        jsonConverter.configure(props, true)
         if (updatedSchema == null) {
             var builder: SchemaBuilder = SchemaUtil.copySchemaBasics(SchemaBuilder.struct())
             if (sourceSchema != null) {
@@ -221,5 +200,4 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
         return newRecord(record, updatedSchema, updatedValue)
     }
 
-    private val jsonConverter = JsonConverter()
 }

@@ -128,7 +128,6 @@ class ClickHouseFlattenTransformerTest {
         )
 
         val transformedRecord = transformer.apply(sinkRecord)
-        hasNoComplexTypes(sinkRecord)
         assertTrue(hasNoComplexTypes(transformedRecord))
 
         // NULL BODY TEST IMPLEMENTATION:
@@ -188,7 +187,6 @@ class ClickHouseFlattenTransformerTest {
         )
 
         val transformedRecord = transformer.apply(sinkRecord)
-        hasNoComplexTypes(sinkRecord)
         assertTrue(hasNoComplexTypes(transformedRecord))
 
         // Manual construction of expected values using hard-coded schema as container
@@ -276,7 +274,6 @@ class ClickHouseFlattenTransformerTest {
         )
 
         val transformedRecord = transformer.apply(sinkRecord)
-        hasNoComplexTypes(sinkRecord)
         assertTrue(hasNoComplexTypes(transformedRecord))
     }
 
@@ -297,7 +294,6 @@ class ClickHouseFlattenTransformerTest {
         )
 
         val transformedRecord = transformer.apply(sinkRecord)
-        hasNoComplexTypes(sinkRecord)
         assertTrue(hasNoComplexTypes(transformedRecord))
 
         val actualSchema = transformedRecord.valueSchema()
