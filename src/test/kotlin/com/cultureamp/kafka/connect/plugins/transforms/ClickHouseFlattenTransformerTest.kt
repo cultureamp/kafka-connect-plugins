@@ -166,7 +166,7 @@ class ClickHouseFlattenTransformerTest {
             .put("_kafka_metadata_partition", "1")
             .put("_kafka_metadata_offset", "156")
             .put("_kafka_metadata_timestamp", null)
-        
+
         // Schema validated separately - this just checks values match
         assertStructValuesEqual(expectedValue, transformedRecord.value() as Struct)
     }
