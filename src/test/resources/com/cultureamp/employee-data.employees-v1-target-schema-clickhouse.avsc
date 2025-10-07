@@ -116,7 +116,7 @@
               "null",
               {
                 "type": "map",
-                "values": "string"
+                "values": "int"
               }
             ],
             "default": null
@@ -137,7 +137,11 @@
                     },
                     {
                       "name": "demographic_value_id",
-                      "type": "string"
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "default": null
                     }
                   ]
                 }
@@ -256,7 +260,11 @@
               },
               {
                 "name": "demographic_value_id",
-                "type": "string"
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "default": null
               }
             ]
           }
