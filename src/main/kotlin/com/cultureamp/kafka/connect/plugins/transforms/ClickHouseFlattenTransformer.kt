@@ -73,26 +73,26 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
             builder.optional()
         if (defaultFromParent != null)
             builder.defaultValue(defaultFromParent)
+        else if (orig.defaultValue() != null)
+            builder.defaultValue(orig.defaultValue())
         return builder.build()
     }
 
     private fun convertComplexFieldSchema(orig: Schema, optional: Boolean): Schema {
         return when (orig.type()) {
             Schema.Type.ARRAY -> {
-                val builder = SchemaBuilder.array(orig.valueSchema())
-                if (optional) builder.optional()
-                builder.build()
+                SchemaBuilder.array(orig.valueSchema())
             }
             Schema.Type.MAP -> {
-                val builder = SchemaBuilder.map(orig.keySchema(), orig.valueSchema())
-                if (optional) builder.optional()
-                builder.build()
+                SchemaBuilder.map(orig.keySchema(), orig.valueSchema())
             }
             else -> {
-                val builder = SchemaUtil.copySchemaBasics(orig)
-                if (optional) builder.optional()
-                builder.build()
+                SchemaUtil.copySchemaBasics(orig)
             }
+        }.let { builder ->
+            if (optional) builder.optional()
+            builder.defaultValue(orig.defaultValue())
+            builder.build()
         }
     }
 
@@ -163,12 +163,14 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
         val sourceSchema = record.valueSchema()
         var updatedSchema = schemaUpdateCache.get(sourceSchema)
         if (updatedSchema == null) {
-            var builder: SchemaBuilder = SchemaUtil.copySchemaBasics(SchemaBuilder.struct())
-            if (sourceSchema != null) {
-                builder = SchemaUtil.copySchemaBasics(sourceSchema, SchemaBuilder.struct())
-                // fix optional to true to prevent issues with is_deleted messages
-                // CREATE TABLE queries should be created with other fields as NULL except for record key and is_deleted as false
-                buildUpdatedSchema(sourceSchema, "", builder, true)
+            val builder: SchemaBuilder = if (sourceSchema == null) {
+                SchemaUtil.copySchemaBasics(SchemaBuilder.struct())
+            } else {
+                SchemaUtil.copySchemaBasics(sourceSchema, SchemaBuilder.struct()).also { builder ->
+                    // fix optional to true to prevent issues with is_deleted messages
+                    // CREATE TABLE queries should be created with other fields as NULL except for record key and is_deleted as false
+                    buildUpdatedSchema(sourceSchema, "", builder, true)
+                }
             }
             builder.field("topic_key", convertFieldSchema(SchemaBuilder.string().build(), false, ""))
             builder.field("is_deleted", convertFieldSchema(SchemaBuilder.int32().build(), false, 0))

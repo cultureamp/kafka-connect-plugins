@@ -16,6 +16,7 @@ import java.io.File
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
@@ -47,7 +48,8 @@ class ClickHouseFlattenTransformerTest {
 
         val expectedSchema = getExpectedSchema()
 
-        assertEquals(expectedSchema, actualTransformedSchema, "Transformed schema should match expected schema")
+        // Detailed schema comparison
+        compareSchemas(expectedSchema, actualTransformedSchema)
     }
 
     @Test
@@ -322,6 +324,101 @@ class ClickHouseFlattenTransformerTest {
      * Helper function to compare Struct values field by field.
      * Needed because Struct.equals() compares object identity, not content.
      */
+    private fun compareSchemas(expectedSchema: Schema, actualSchema: Schema, path: String = "") {
+        // Ensure schemas are not null
+        assertNotNull(expectedSchema, "Expected schema cannot be null at $path")
+        assertNotNull(actualSchema, "Actual schema cannot be null at $path")
+
+        // Compare basic schema properties
+        assertEquals(
+            expectedSchema.type(), actualSchema.type(),
+            "Schema type mismatch at $path: expected ${expectedSchema.type()}, got ${actualSchema.type()}"
+        )
+        assertEquals(
+            expectedSchema.isOptional, actualSchema.isOptional,
+            "Optional setting mismatch at $path"
+        )
+        assertEquals(
+            expectedSchema.defaultValue(), actualSchema.defaultValue(),
+            "Default value mismatch at $path"
+        )
+        assertEquals(
+            expectedSchema.name(), actualSchema.name(),
+            "Name mismatch at $path"
+        )
+        assertEquals(
+            expectedSchema.doc(), actualSchema.doc(),
+            "Doc mismatch at $path"
+        )
+        assertEquals(
+            expectedSchema.version(), actualSchema.version(),
+            "Version mismatch at $path"
+        )
+
+        // Type-specific deep comparisons
+        when (expectedSchema.type()) {
+            Schema.Type.STRUCT -> compareStructSchemas(expectedSchema, actualSchema, path)
+            Schema.Type.ARRAY -> compareArraySchemas(expectedSchema, actualSchema, path)
+            Schema.Type.MAP -> compareMapSchemas(expectedSchema, actualSchema, path)
+            else -> {
+                // For primitive types, just check the main fields match
+                // No further comparison needed
+            }
+        }
+        // Just to be sure we don't miss something important, add a regular schema.equals(), which won't tell is _what_
+        // is different
+        assertEquals(expectedSchema, actualSchema, "Schemas do not match, for some reason not checked above, at $path")
+    }
+
+    private fun compareStructSchemas(expectedSchema: Schema, actualSchema: Schema, path: String) {
+        val expectedFields = expectedSchema.fields()
+        val actualFields = actualSchema.fields()
+
+        assertEquals(
+            expectedFields.size, actualFields.size,
+            "Struct field count mismatch at $path: expected ${expectedFields.size}, got ${actualFields.size}"
+        )
+
+        for (expectedField in expectedFields) {
+            val actualField = actualSchema.field(expectedField.name())
+                ?: throw AssertionError("Field ${expectedField.name()} not found at $path")
+
+            // Compare field names and run recursive schema comparison
+            assertEquals(
+                expectedField.name(), actualField.name(),
+                "Field name mismatch at $path"
+            )
+            compareSchemas(
+                expectedField.schema(),
+                actualField.schema(),
+                "$path.${expectedField.name()}"
+            )
+        }
+    }
+
+    private fun compareArraySchemas(expectedSchema: Schema, actualSchema: Schema, path: String) {
+        // Compare array value schemas
+        compareSchemas(
+            expectedSchema.valueSchema(),
+            actualSchema.valueSchema(),
+            "$path[]"
+        )
+    }
+
+    private fun compareMapSchemas(expectedSchema: Schema, actualSchema: Schema, path: String) {
+        // Compare key and value schemas
+        compareSchemas(
+            expectedSchema.keySchema(),
+            actualSchema.keySchema(),
+            "$path[key]"
+        )
+        compareSchemas(
+            expectedSchema.valueSchema(),
+            actualSchema.valueSchema(),
+            "$path[value]"
+        )
+    }
+
     private fun assertStructValuesEqual(expected: Struct, actual: Struct) {
         assertEquals(expected.schema().fields().size, actual.schema().fields().size, "Struct field count mismatch")
 
