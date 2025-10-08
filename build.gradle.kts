@@ -39,7 +39,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test")
 
     // Use the Kotlin JUnit integration.
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter:5.10.0")
 
     // CVE-2023-6378 https://logback.qos.ch/news.html#1.3.12
     implementation("ch.qos.logback:logback-classic:1.4.14")

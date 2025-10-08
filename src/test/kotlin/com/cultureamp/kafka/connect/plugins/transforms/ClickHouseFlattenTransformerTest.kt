@@ -11,9 +11,9 @@ import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaAndValue
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
-import org.junit.jupiter.api.BeforeEach
 import java.io.File
 import java.nio.file.Files
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -31,7 +31,7 @@ class ClickHouseFlattenTransformerTest {
             field.schema().type() == Schema.Type.STRUCT
         }
 
-    @BeforeEach
+    @BeforeTest
     fun setUp() {
         transformer = ClickHouseFlattenTransformer()
     }
