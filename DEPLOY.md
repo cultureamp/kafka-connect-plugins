@@ -14,7 +14,6 @@ Run the following commands:
 ```
 ./gradlew test
 ./gradlew lintKotlin
-./gradlew dependencyCheckAnalyze
 ```
 
 ### 2. Update package version in `build.gradle.kts`
