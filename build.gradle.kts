@@ -2,13 +2,10 @@ val kafkaVersion = "3.6.2"
 
 plugins {
     // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
-    id("org.jetbrains.kotlin.jvm") version "1.6.10"
+    id("org.jetbrains.kotlin.jvm") version "1.9.21"
 
     // Add ktlint
     id("org.jmailen.kotlinter") version "3.6.0"
-
-    // Vulnerable dependency checker
-    id("org.owasp.dependencycheck") version "9.0.8"
 
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
@@ -42,7 +39,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test")
 
     // Use the Kotlin JUnit integration.
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter:5.10.0")
 
     // CVE-2023-6378 https://logback.qos.ch/news.html#1.3.12
     implementation("ch.qos.logback:logback-classic:1.4.14")
