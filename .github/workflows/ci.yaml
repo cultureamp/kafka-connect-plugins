@@ -15,10 +15,9 @@ jobs:
         with:
           java-version: "17"
           distribution: "corretto"
-#          cache: gradle # Doesn't seem to be working
 
-      - name: Validate Gradle wrapper
-        uses: gradle/wrapper-validation-action@e6e38bacfdf1a337459f332974bb2327a31aaf4b
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
 
       - name: Build, test, lint
         run: |
@@ -29,11 +28,6 @@ jobs:
         with:
           name: build-artifacts
           path: build/libs
-
-      - name: Cleanup Gradle Cache
-        run: |
-          rm -f ~/.gradle/caches/modules-2/modules-2.lock
-          rm -f ~/.gradle/caches/modules-2/gc.properties
 
   snyk-scan:
     runs-on: ubuntu-latest
