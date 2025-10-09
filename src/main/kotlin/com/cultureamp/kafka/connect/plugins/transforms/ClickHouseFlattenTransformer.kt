@@ -173,7 +173,7 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
                 }
             }
             builder.field("topic_key", convertFieldSchema(SchemaBuilder.string().build(), false, ""))
-            builder.field("is_deleted", convertFieldSchema(SchemaBuilder.int32().build(), false, 0))
+            builder.field("is_deleted", convertFieldSchema(SchemaBuilder.int8().build(), false, 0.toByte()))
             builder.field("_kafka_metadata_partition", convertFieldSchema(SchemaBuilder.string().build(), true, null))
             builder.field("_kafka_metadata_offset", convertFieldSchema(SchemaBuilder.string().build(), true, null))
             builder.field("_kafka_metadata_timestamp", convertFieldSchema(SchemaBuilder.int64().build(), true, null))
@@ -191,13 +191,13 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
             updatedValue.put("topic_key", record.key().toString())
         }
         if (sourceValue != null) {
-            updatedValue.put("is_deleted", 0)
+            updatedValue.put("is_deleted", 0.toByte())
             buildWithSchema(sourceValue, "", updatedValue)
         }
         val bodyStruct = sourceValue?.getStruct("body")
         val deletedAt = bodyStruct?.get("deleted_at")
         if (sourceValue == null || bodyStruct == null || deletedAt != null) {
-            updatedValue.put("is_deleted", 1)
+            updatedValue.put("is_deleted", 1.toByte())
         }
         return newRecord(record, updatedSchema, updatedValue)
     }

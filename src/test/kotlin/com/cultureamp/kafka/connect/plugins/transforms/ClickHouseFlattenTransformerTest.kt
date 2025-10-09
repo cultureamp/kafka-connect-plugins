@@ -100,7 +100,7 @@ class ClickHouseFlattenTransformerTest {
             .put("test_string_array", test_string_array)
             .put("test_array_of_arrays", test_array_of_arrays)
             .put("test_map", test_map)
-            .put("is_deleted", 1)
+            .put("is_deleted", 1.toByte())
             .put("_kafka_metadata_partition", "1")
             .put("_kafka_metadata_offset", "156")
             .put("_kafka_metadata_timestamp", null)
@@ -187,7 +187,7 @@ class ClickHouseFlattenTransformerTest {
             .put("test_array_of_arrays", test_array_of_arrays)
             .put("test_map", test_map)
             .put("topic_key", "hellp")
-            .put("is_deleted", 0)
+            .put("is_deleted", 0.toByte())
             .put("_kafka_metadata_partition", "1")
             .put("_kafka_metadata_offset", "156")
             .put("_kafka_metadata_timestamp", 1727247537132L)
@@ -236,7 +236,7 @@ class ClickHouseFlattenTransformerTest {
         assertTrue(hasNoComplexTypes(transformedRecord))
 
         val actualSchema = transformedRecord.valueSchema()
-        val expectedValue = Struct(actualSchema).put("is_deleted", 1).put("_kafka_metadata_partition", "0")
+        val expectedValue = Struct(actualSchema).put("is_deleted", 1.toByte()).put("_kafka_metadata_partition", "0")
             .put("_kafka_metadata_offset", "156").put("_kafka_metadata_timestamp", 1713922160L)
         assertEquals(expectedValue, transformedRecord.value())
     }
