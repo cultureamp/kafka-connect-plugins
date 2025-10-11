@@ -5,7 +5,7 @@ plugins {
     id("org.jetbrains.kotlin.jvm") version "1.9.21"
 
     // Add ktlint
-    id("org.jmailen.kotlinter") version "3.6.0"
+    id("org.jmailen.kotlinter") version "5.2.0"
 
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
