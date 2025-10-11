@@ -61,5 +61,5 @@ dependencies {
 
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.3")
     implementation("org.mongodb.kafka:mongo-kafka-connect:1.7.0")
-    implementation("org.mongodb:bson:4.5.1")
+    implementation("org.mongodb:bson:4.11.5")
 }
