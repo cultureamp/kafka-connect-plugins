@@ -48,7 +48,7 @@ dependencies {
     // Previous 2.15.2 version was flagged as vulnerability:
     // CVE-2023-35116 - developers claim it's a bogus alert https://github.com/FasterXML/jackson-databind/issues/3972
     // but I guess won't hurt to upgrade it + will resolve dependency check failure
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.16.0")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.20.0")
 
     // Upgraded version of Snappy Java to patch:
     // CVE-2023-34454 - https://github.com/advisories/GHSA-fjpj-2g6w-x25r
@@ -59,7 +59,7 @@ dependencies {
     // CVE-2023-42503
     implementation("org.apache.commons:commons-compress:1.26.0")
 
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.3")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.20.0")
     implementation("org.mongodb.kafka:mongo-kafka-connect:1.7.0")
     implementation("org.mongodb:bson:4.5.1")
 }
