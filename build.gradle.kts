@@ -1,9 +1,8 @@
 val kafkaVersion = "3.6.2"
-val javaVersion = "17"
 
 plugins {
-  // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
-  kotlin("jvm") version "1.9.22"
+    // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
+    id("org.jetbrains.kotlin.jvm") version "1.9.21"
 
     // Add ktlint
     id("org.jmailen.kotlinter") version "3.6.0"
@@ -11,14 +10,10 @@ plugins {
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
 
-  // Enable publishing to GitHub Maven repository
-  `maven-publish`
 }
 
-
-group = "com.cultureamp"
 // Package version
-version = gradle.extra["package_version"]!! as String
+version = "0.8.1"
 
 repositories {
     // Use Maven Central for resolving dependencies.
@@ -40,9 +35,11 @@ dependencies {
     implementation("org.apache.kafka:connect-transforms:$kafkaVersion")
     implementation("org.apache.avro:avro:1.11.3")
 
-    // Use the Kotlin JUnit integration.
+    // Use the Kotlin test library.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
-    testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.10.0")
+
+    // Use the Kotlin JUnit integration.
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter:5.10.0")
 
     // CVE-2023-6378 https://logback.qos.ch/news.html#1.3.12
     implementation("ch.qos.logback:logback-classic:1.4.14")
@@ -65,52 +62,4 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.3")
     implementation("org.mongodb.kafka:mongo-kafka-connect:1.7.0")
     implementation("org.mongodb:bson:4.5.1")
-}
-
-// Set target java version
-configure<org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension> {
-  jvmToolchain { languageVersion.set(JavaLanguageVersion.of(javaVersion)) }
-}
-
-java {
-  toolchain { languageVersion.set(JavaLanguageVersion.of(javaVersion)) }
-
-  // publish source jar to maven
-  withSourcesJar()
-}
-
-publishing {
-  repositories {
-    maven {
-      name = "GitHubPackages"
-      url = uri("https://maven.pkg.github.com/cultureamp/${rootProject.name}")
-      credentials {
-        username = System.getenv("USERNAME")
-        password = System.getenv("PACKAGE_WRITE_TOKEN")
-      }
-    }
-  }
-  publications {
-    create<MavenPublication>("maven") {
-      artifactId = project.name
-      from(components["java"])
-    }
-  }
-}
-
-tasks.named<Test>("test") { 
-    useJUnitPlatform()
-}
-
-tasks.jar {
-  manifest {
-    attributes(
-      mapOf(
-        "Implementation-Title" to project.name,
-        "Implementation-Version" to project.version,
-      ),
-    )
-  }
-
-  archiveBaseName.set(project.name)
 }

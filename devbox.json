@@ -1,9 +1,12 @@
 {
-  "$schema":  "https://raw.githubusercontent.com/jetify-com/devbox/0.13.5/.schema/devbox.schema.json",
-  "packages": {
-    "jdk": "17"
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.13.7/.schema/devbox.schema.json",
+  "packages": [
+    "jdk@17", // .github/worlflows/ci.yaml uses adopt, but it won't work with devbox and is deprecated anyway
+  ],
+  "env": {
+    /*
+     * Netskope
+     */
+    "NETSKOPE_CERT_PATH": "/Library/Application Support/Netskope/STAgent/data/nscacert.pem",
   },
-  "include":  ["github:cultureamp/devbox-extras?dir=plugins/ca-changesets"],
-  "shell": {
-  }
 }

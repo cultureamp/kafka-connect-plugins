@@ -1,0 +1,112 @@
+{
+	"id": "c63526f8-dec7-4ef8-96d8-18756076f064",
+	"account_id": "0a05e2a3-7258-4cf5-a7f4-e21b08c030c5",
+	"employee_id": "c63526f8-dec7-4ef8-96d8-18756076f064",
+	"event_created_at": 1536899741117,
+	"body": {
+		"source": {
+			"string": ""
+		},
+		"employee_id": null,
+		"email": {
+			"string": "testing800702@namelytest.com"
+		},
+		"name": {
+			"string": "Test User 800702"
+		},
+		"preferred_name": null,
+		"birth_date": null,
+		"start_date": {
+			"string": "2017-02-24"
+		},
+		"end_date": null,
+		"locale": null,
+		"observer": false,
+		"gdpr_erasure_request_id": null,
+		"manager_assignment": {
+			"manager_id": {
+				"string": "5c579970-684e-4911-a077-6bf407fb478d"
+			},
+			"demographic_id": {
+				"string": "427b936f-e932-4673-95a2-acd3e3b900b1"
+			}
+		},
+		"test_array_of_structs": [
+			{
+				"demographic_id": {
+					"string": "5c579970-684e-4911-a077-6bf407fb478d"
+				},
+				"demographic_value_id": {
+					"string": "427b936f-e932-4673-95a2-acd3e3b900b1"
+				}
+			},
+			{
+				"demographic_id": {
+					"string": "460f6b2d-03c5-46cf-ba55-aa14477a12dc"
+				},
+				"demographic_value_id": {
+					"string": "ecc0db2e-486e-4f4a-a54a-db21673e1a2b"
+				}
+			}
+		],
+		"test_map": {
+			"added_users_count": 0,
+			"ignored_new_demographics_count": 0,
+			"ignored_users_count": 0,
+			"inactive_updated_users_count": 0,
+			"reactivated_users_count": 0,
+			"removed_users_count": 0,
+			"updated_users_count": 0
+		},
+		"test_map_1": null,
+		"erased": false,
+        "created_at": 1536899741113,
+		"updated_at": 1536899741117,
+		"deleted_at": null
+	},
+	"metadata": {
+		"correlation_id": {
+			"string": "b9098254-a1db-4114-9a39-baa17ab18fbf"
+		},
+		"causation_id": null,
+		"executor_id": {
+			"string": "379907ca-632c-4e83-89c4-9dbe0e759ad3"
+		},
+		"service": "Influx"
+	},
+	"test_array_of_structs": [
+		{
+			"demographic_id": {
+				"string": "5c579970-684e-4911-a077-6bf407fb478d"
+			},
+			"demographic_value_id": {
+				"string": "427b936f-e932-4673-95a2-acd3e3b900b1"
+			}
+		},
+		{
+			"demographic_id": {
+				"string": "460f6b2d-03c5-46cf-ba55-aa14477a12dc"
+			},
+			"demographic_value_id": {
+				"string": "ecc0db2e-486e-4f4a-a54a-db21673e1a2b"
+			}
+		}
+	],
+	"test_map": {
+		"added_users_count": 0,
+		"ignored_new_demographics_count": 0,
+		"ignored_users_count": 0,
+		"inactive_updated_users_count": 0,
+		"reactivated_users_count": 0,
+		"removed_users_count": 0,
+		"updated_users_count": 0
+	},
+	"test_string_array": [
+		"a", "b", "c"
+	],
+	"test_array_of_arrays": [
+		["a", "b", "c"],
+		["e"],
+		["f", "g"]
+	]
+}
