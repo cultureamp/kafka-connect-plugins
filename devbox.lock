@@ -5,36 +5,36 @@
       "last_modified": "2025-09-28T14:42:27Z",
       "resolved": "github:NixOS/nixpkgs/647e5c14cbd5067f44ac86b74f014962df460840?lastModified=1759070547&narHash=sha256-JVZl8NaVRYb0%2B381nl7LvPE%2BA774%2FdRpif01FKLrYFQ%3D"
     },
-    "jdk@17.0.12": {
-      "last_modified": "2025-09-18T16:33:27Z",
-      "resolved": "github:NixOS/nixpkgs/f4b140d5b253f5e2a1ff4e5506edbf8267724bde#jdk17",
+    "jdk@25.0.0": {
+      "last_modified": "2025-10-07T08:41:47Z",
+      "resolved": "github:NixOS/nixpkgs/bce5fe2bb998488d8e7e7856315f90496723793c#jdk25",
       "source": "devbox-search",
-      "version": "17.0.12",
+      "version": "25.0.0",
       "systems": {
         "aarch64-darwin": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/c0zwkd0idwp22ic1aw5ax3ncn0648689-zulu-ca-jdk-17.0.12",
+              "path": "/nix/store/v7p3w08vvqziqd9c7qrgxdydcqgxk4dp-zulu-ca-jdk-25.0.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/c0zwkd0idwp22ic1aw5ax3ncn0648689-zulu-ca-jdk-17.0.12"
+          "store_path": "/nix/store/v7p3w08vvqziqd9c7qrgxdydcqgxk4dp-zulu-ca-jdk-25.0.0"
         },
         "x86_64-darwin": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/j01jsl0zi023b9s8kkw9smczzxrs3bnz-zulu-ca-jdk-17.0.12",
+              "path": "/nix/store/sclhxc0pj5rn0vl5c4jgwakj5sppdzl1-zulu-ca-jdk-25.0.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/j01jsl0zi023b9s8kkw9smczzxrs3bnz-zulu-ca-jdk-17.0.12"
+          "store_path": "/nix/store/sclhxc0pj5rn0vl5c4jgwakj5sppdzl1-zulu-ca-jdk-25.0.0"
         },
         "x86_64-linux": {
           "outputs": [
             {
-              "path": "/tmp/containerbase/cache/nix/store/fm0bmiwqd5bnawc62h3djf3ml1bl8rgd-openjdk-17.0.16+8",
+              "path": "/tmp/containerbase/cache/nix/store/ds8pr2sm50dwxydas2xlqnx0mkkii0x9-openjdk-25+36",
               "default": true
             }
           ]
