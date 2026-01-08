@@ -44,6 +44,24 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
 
     override fun apply(record: R): R {
         try {
+            // If the record value is a Map (schemaless JSON), convert it to a JSON string
+            val value = record.value()
+            if (value is Map<*, *>) {
+                val jsonString = objectMapper.writeValueAsString(value)
+                // Create a Struct schema with a single string field 'json_payload'
+                val structSchema = SchemaBuilder.struct().field("json_payload", Schema.STRING_SCHEMA).build()
+                val structValue = Struct(structSchema).put("json_payload", jsonString)
+                return record.newRecord(
+                    record.topic(),
+                    record.kafkaPartition(),
+                    record.keySchema(),
+                    record.key(),
+                    structSchema,
+                    structValue,
+                    record.timestamp()
+                )
+            }
+            // Otherwise, use the existing logic
             return targetPayload(record)
         } catch (e: Exception) {
             logger.error("Exception: ", e)
