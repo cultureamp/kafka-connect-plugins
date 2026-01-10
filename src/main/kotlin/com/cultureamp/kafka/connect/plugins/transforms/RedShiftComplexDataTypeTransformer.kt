@@ -48,9 +48,32 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
             val value = record.value()
             if (value is Map<*, *>) {
                 val jsonString = objectMapper.writeValueAsString(value)
-                // Create a Struct schema with a single string field 'json_payload'
-                val structSchema = SchemaBuilder.struct().field("json_payload", Schema.STRING_SCHEMA).build()
-                val structValue = Struct(structSchema).put("json_payload", jsonString)
+                // Create a Struct schema with json_payload PLUS metadata fields
+                val structSchema = SchemaBuilder.struct()
+                    .field("json_payload", Schema.STRING_SCHEMA)
+                    .field("topic_key", Schema.OPTIONAL_STRING_SCHEMA)
+                    .field("tombstone", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+                    .field("_kafka_metadata_partition", Schema.OPTIONAL_STRING_SCHEMA)
+                    .field("_kafka_metadata_offset", Schema.OPTIONAL_STRING_SCHEMA)
+                    .field("_kafka_metadata_timestamp", Schema.OPTIONAL_STRING_SCHEMA)
+                    .build()
+
+                val structValue = Struct(structSchema)
+                    .put("json_payload", jsonString)
+                    .put("tombstone", false)
+                    .put("_kafka_metadata_partition", record.kafkaPartition().toString())
+
+                // Add key if present
+                if (record.key() != null) {
+                    structValue.put("topic_key", record.key().toString())
+                }
+
+                // Add offset and timestamp for SinkRecord
+                if (record is SinkRecord) {
+                    structValue.put("_kafka_metadata_offset", record.kafkaOffset().toString())
+                    structValue.put("_kafka_metadata_timestamp", record.timestamp().toString())
+                }
+
                 return record.newRecord(
                     record.topic(),
                     record.kafkaPartition(),
