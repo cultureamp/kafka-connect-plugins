@@ -70,8 +70,8 @@ class ClickHouseFlattenTransformerTest {
         assertTrue(hasNoComplexTypes(transformedRecord))
 
         // NULL BODY TEST IMPLEMENTATION:
-        // When body is null in the input data, transformer only processes top-level fields
-        // Manual construction of expected values using hard-coded schema as container
+        // When body is null in the input data, transformer processes top-level fields
+        // and populates defaults for non-optional body fields
         val expectedSchema = getExpectedSchema()
         val arrayStructSchema = expectedSchema.field("test_array_of_structs").schema().valueSchema()
         val test_array_of_structs = listOf(
@@ -85,13 +85,19 @@ class ClickHouseFlattenTransformerTest {
             }
         )
 
-        // Expected result: no body_* fields except those with defaults from schema, metadata_service uses default, is_deleted=1
+        // Expected result: body_* fields populated with defaults for non-optional fields
         val expectedValue = Struct(expectedSchema)
             .put("id", id)
             .put("account_id", account_id)
             .put("employee_id", employee_id)
             .put("event_created_at", event_created_at)
-            .put("body_observer", true) // Avro schema default when body is processed but observer field is absent
+            // Non-optional body fields get defaults when body is null
+            .put("body_observer", true) // schema default
+            .put("body_test_map", emptyMap<String, Any>()) // type default for non-optional map
+            .put("body_test_array_of_structs", emptyList<Any>()) // type default for non-optional array
+            .put("body_erased", false) // type default for non-optional boolean
+            .put("body_created_at", 0L) // type default for non-optional long
+            .put("body_updated_at", 0L) // type default for non-optional long
             .put("metadata_correlation_id", metadata_correlation_id)
             .put("metadata_causation_id", metadata_causation_id)
             .put("metadata_executor_id", metadata_executor_id)
@@ -236,8 +242,24 @@ class ClickHouseFlattenTransformerTest {
         assertTrue(hasNoComplexTypes(transformedRecord))
 
         val actualSchema = transformedRecord.valueSchema()
-        val expectedValue = Struct(actualSchema).put("is_deleted", 1.toByte()).put("_kafka_metadata_partition", "0")
-            .put("_kafka_metadata_offset", "156").put("_kafka_metadata_timestamp", 1713922160L)
+        // Tombstone records populate defaults for non-optional fields only
+        // Note: body is optional (union with null), so body_* fields are NOT populated
+        val expectedValue = Struct(actualSchema)
+            // Non-optional top-level fields get type defaults
+            .put("id", "")
+            .put("account_id", "")
+            .put("employee_id", "")
+            .put("event_created_at", 0L)
+            // body is optional (union with null), so no body_* defaults
+            // Non-optional metadata fields (metadata.service has schema default)
+            .put("metadata_service", "Default-Service")
+            // Non-optional top-level array
+            .put("test_array_of_structs", emptyList<Any>())
+            // Kafka metadata fields
+            .put("is_deleted", 1.toByte())
+            .put("_kafka_metadata_partition", "0")
+            .put("_kafka_metadata_offset", "156")
+            .put("_kafka_metadata_timestamp", 1713922160L)
         assertEquals(expectedValue, transformedRecord.value())
     }
 
@@ -255,6 +277,79 @@ class ClickHouseFlattenTransformerTest {
 
         val transformedRecord = transformer.apply(sinkRecord)
         assertTrue(hasNoComplexTypes(transformedRecord))
+    }
+
+    @Test
+    fun `populates defaults for non-optional fields when body is null`() {
+        // This test verifies that when body is null (delete event), non-optional body fields
+        // get populated with default values to satisfy ClickHouse connector validation
+        val avroRecord = payload("com/cultureamp/employee-data.employees-v2-clickhouse.json")
+        val sinkRecord = SinkRecord(
+            "delete event test",
+            1,
+            Schema.STRING_SCHEMA,
+            "test-key",
+            avroRecord.schema(),
+            avroRecord.value(),
+            100,
+            System.currentTimeMillis(),
+            TimestampType.CREATE_TIME,
+        )
+
+        val transformedRecord = transformer.apply(sinkRecord)
+        val value = transformedRecord.value() as Struct
+
+        // Verify is_deleted flag is set
+        assertEquals(1.toByte(), value.get("is_deleted"), "is_deleted should be 1 for null body")
+
+        // Verify non-optional body fields are populated with defaults
+        assertEquals(true, value.get("body_observer"), "body_observer should have schema default (true)")
+        assertEquals(emptyMap<String, Any>(), value.get("body_test_map"), "body_test_map should have empty map default")
+        assertEquals(emptyList<Any>(), value.get("body_test_array_of_structs"), "body_test_array_of_structs should have empty list default")
+        assertEquals(false, value.get("body_erased"), "body_erased should have type default (false)")
+        assertEquals(0L, value.get("body_created_at"), "body_created_at should have type default (0)")
+        assertEquals(0L, value.get("body_updated_at"), "body_updated_at should have type default (0)")
+
+        // Verify optional body fields remain null
+        assertEquals(null, value.get("body_source"), "Optional body_source should remain null")
+        assertEquals(null, value.get("body_email"), "Optional body_email should remain null")
+        assertEquals(null, value.get("body_deleted_at"), "Optional body_deleted_at should remain null")
+    }
+
+    @Test
+    fun `populates defaults for non-optional top-level fields on tombstone`() {
+        // This test verifies that tombstone messages get default values for non-optional top-level fields
+        val avroRecord = payload("com/cultureamp/employee-data.employees-v1-clickhouse.json")
+        val sinkRecord = SinkRecord(
+            "tombstone test",
+            0,
+            Schema.STRING_SCHEMA,
+            "tombstone-key",
+            avroRecord.schema(),
+            null, // tombstone - null value
+            200,
+            System.currentTimeMillis(),
+            TimestampType.CREATE_TIME,
+        )
+
+        val transformedRecord = transformer.apply(sinkRecord)
+        val value = transformedRecord.value() as Struct
+
+        // Verify is_deleted flag is set
+        assertEquals(1.toByte(), value.get("is_deleted"), "is_deleted should be 1 for tombstone")
+
+        // Verify non-optional top-level fields are populated with defaults
+        assertEquals("", value.get("id"), "id should have empty string default")
+        assertEquals("", value.get("account_id"), "account_id should have empty string default")
+        assertEquals("", value.get("employee_id"), "employee_id should have empty string default")
+        assertEquals(0L, value.get("event_created_at"), "event_created_at should have 0 default")
+        assertEquals(emptyList<Any>(), value.get("test_array_of_structs"), "test_array_of_structs should have empty list default")
+
+        // Verify non-optional metadata fields are populated
+        assertEquals("Default-Service", value.get("metadata_service"), "metadata_service should have schema default")
+
+        // Verify topic_key is set from record key
+        assertEquals("tombstone-key", value.get("topic_key"), "topic_key should be set from record key")
     }
 
     private val sourceSchema = AvroSchema.fromJson(fileContent("com/cultureamp/employee-data.employees-value-v1-clickhouse.avsc"))

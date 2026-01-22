@@ -158,6 +158,74 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
         }
     }
 
+    /**
+     * Populates default values for fields that haven't been set in the target struct.
+     * This is used for delete events where the source record or body is null,
+     * ensuring non-nullable fields have values to satisfy the ClickHouse connector.
+     *
+     * Only populates fields that are non-optional in the source schema, as optional
+     * fields can remain unset (null).
+     *
+     * @param sourceSchema The source Avro schema to read field definitions from
+     * @param targetStruct The target struct to populate defaults into
+     * @param fieldNamePrefix The prefix for flattened field names (e.g., "body")
+     */
+    private fun populateDefaultsForNonOptionalFields(sourceSchema: Schema, targetStruct: Struct, fieldNamePrefix: String) {
+        for (field in sourceSchema.fields()) {
+            val flattenedFieldName = fieldName(fieldNamePrefix, field.name())
+
+            when (field.schema().type()) {
+                Schema.Type.STRUCT -> {
+                    // Only recurse into non-optional structs
+                    // Optional structs can remain null entirely
+                    if (!field.schema().isOptional) {
+                        populateDefaultsForNonOptionalFields(field.schema(), targetStruct, flattenedFieldName)
+                    }
+                }
+                Schema.Type.INT8,
+                Schema.Type.INT16,
+                Schema.Type.INT32,
+                Schema.Type.INT64,
+                Schema.Type.FLOAT32,
+                Schema.Type.FLOAT64,
+                Schema.Type.BOOLEAN,
+                Schema.Type.STRING,
+                Schema.Type.BYTES,
+                Schema.Type.ARRAY,
+                Schema.Type.MAP -> {
+                    // Only populate if the field exists in target schema and is non-optional in source
+                    val targetField = targetStruct.schema().field(flattenedFieldName)
+                    if (targetField != null && !field.schema().isOptional) {
+                        // Use schema default if available, otherwise use type-specific default
+                        val defaultValue = field.schema().defaultValue() ?: getTypeDefault(field.schema().type())
+                        targetStruct.put(flattenedFieldName, defaultValue)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Returns a sensible default value for the given schema type.
+     * Used when a field has no schema-defined default but needs a value.
+     */
+    private fun getTypeDefault(type: Schema.Type): Any? {
+        return when (type) {
+            Schema.Type.STRING -> ""
+            Schema.Type.INT8 -> 0.toByte()
+            Schema.Type.INT16 -> 0.toShort()
+            Schema.Type.INT32 -> 0
+            Schema.Type.INT64 -> 0L
+            Schema.Type.FLOAT32 -> 0.0f
+            Schema.Type.FLOAT64 -> 0.0
+            Schema.Type.BOOLEAN -> false
+            Schema.Type.BYTES -> ByteArray(0)
+            Schema.Type.ARRAY -> emptyList<Any>()
+            Schema.Type.MAP -> emptyMap<String, Any>()
+            else -> null
+        }
+    }
+
     private fun targetPayload(record: R): R {
         val sourceValue = Requirements.requireStructOrNull(record.value(), purpose)
         val sourceSchema = record.valueSchema()
@@ -193,12 +261,27 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
         if (sourceValue != null) {
             updatedValue.put("is_deleted", 0.toByte())
             buildWithSchema(sourceValue, "", updatedValue)
+        } else if (sourceSchema != null) {
+            // Tombstone case: sourceValue is null, populate defaults for non-optional fields
+            populateDefaultsForNonOptionalFields(sourceSchema, updatedValue, "")
         }
+
         val bodyStruct = sourceValue?.getStruct("body")
         val deletedAt = bodyStruct?.get("deleted_at")
+
+        // Handle delete events: body is null or deleted_at is set
         if (sourceValue == null || bodyStruct == null || deletedAt != null) {
             updatedValue.put("is_deleted", 1.toByte())
         }
+
+        // Body is null case: populate defaults for non-optional body fields
+        if (sourceValue != null && bodyStruct == null && sourceSchema != null) {
+            val bodyField = sourceSchema.field("body")
+            if (bodyField != null && bodyField.schema().type() == Schema.Type.STRUCT) {
+                populateDefaultsForNonOptionalFields(bodyField.schema(), updatedValue, "body")
+            }
+        }
+
         return newRecord(record, updatedSchema, updatedValue)
     }
 }
