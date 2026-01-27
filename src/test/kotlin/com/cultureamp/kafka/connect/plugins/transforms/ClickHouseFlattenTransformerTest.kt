@@ -17,6 +17,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -34,6 +35,7 @@ class ClickHouseFlattenTransformerTest {
     @BeforeTest
     fun setUp() {
         transformer = ClickHouseFlattenTransformer()
+        transformer.configure(mutableMapOf<String, String>())
     }
 
     @Test
@@ -44,7 +46,7 @@ class ClickHouseFlattenTransformerTest {
         val avroRecord = payload("com/cultureamp/employee-data.employees-v1-clickhouse.json")
         val sinkRecord = SinkRecord("test-topic", 1, null, null, initialSchema, avroRecord.value(), 156)
         val transformedRecord = transformer.apply(sinkRecord)
-        val actualTransformedSchema = transformedRecord.valueSchema()
+        val actualTransformedSchema = transformedRecord?.valueSchema()
 
         val expectedSchema = getExpectedSchema()
 
@@ -67,6 +69,7 @@ class ClickHouseFlattenTransformerTest {
         )
 
         val transformedRecord = transformer.apply(sinkRecord)
+        assertNotNull(transformedRecord)
         assertTrue(hasNoComplexTypes(transformedRecord))
 
         // NULL BODY TEST IMPLEMENTATION:
@@ -126,6 +129,7 @@ class ClickHouseFlattenTransformerTest {
         )
 
         val transformedRecord = transformer.apply(sinkRecord)
+        assertNotNull(transformedRecord)
         assertTrue(hasNoComplexTypes(transformedRecord))
 
         // Manual construction of expected values using hard-coded schema as container
@@ -213,12 +217,33 @@ class ClickHouseFlattenTransformerTest {
         )
 
         val transformedRecord = transformer.apply(sinkRecord)
+        assertNull(transformedRecord)
+    }
+
+    @Test
+    fun `can transform ECST Employee data with tombstone message and non-null key and skipTombstones disabled`() {
+
+        val avroRecord = payload("com/cultureamp/employee-data.employees-v1-clickhouse.json")
+        val sinkRecord = SinkRecord(
+            "employee data ecst test",
+            0,
+            Schema.STRING_SCHEMA,
+            "hellp",
+            avroRecord.schema(),
+            null,
+            156,
+            1713922160,
+            TimestampType.CREATE_TIME,
+        )
+
+        transformer.configure(mutableMapOf(ClickHouseFlattenTransformer.CONFIG_SKIP_TOMBSTONES to "false"))
+        val transformedRecord = transformer.apply(sinkRecord)
+        assertNotNull(transformedRecord)
         assertTrue(hasNoComplexTypes(transformedRecord))
     }
 
     @Test
     fun `can transform ECST Employee data with tombstone message and null key`() {
-
         val avroRecord = payload("com/cultureamp/employee-data.employees-v1-clickhouse.json")
         val sinkRecord = SinkRecord(
             "employee data ecst test",
@@ -232,7 +257,9 @@ class ClickHouseFlattenTransformerTest {
             TimestampType.CREATE_TIME,
         )
 
+        transformer.configure(mutableMapOf(ClickHouseFlattenTransformer.CONFIG_SKIP_TOMBSTONES to "false"))
         val transformedRecord = transformer.apply(sinkRecord)
+        assertNotNull(transformedRecord)
         assertTrue(hasNoComplexTypes(transformedRecord))
 
         val actualSchema = transformedRecord.valueSchema()
@@ -254,7 +281,7 @@ class ClickHouseFlattenTransformerTest {
         )
 
         val transformedRecord = transformer.apply(sinkRecord)
-        assertTrue(hasNoComplexTypes(transformedRecord))
+        assertNull(transformedRecord)
     }
 
     private val sourceSchema = AvroSchema.fromJson(fileContent("com/cultureamp/employee-data.employees-value-v1-clickhouse.avsc"))
@@ -308,9 +335,11 @@ class ClickHouseFlattenTransformerTest {
 
         // Use minimal record to extract schema - transformer builds same output schema regardless of data
         val schemaExtractionRecord = SinkRecord("schema-extraction", 0, null, null, avroSchema, null, 0)
-        val transformedRecord = transformer.apply(schemaExtractionRecord)
+        val tempTransformer: ClickHouseFlattenTransformer<SinkRecord> = ClickHouseFlattenTransformer()
+        tempTransformer.configure(mutableMapOf(ClickHouseFlattenTransformer.CONFIG_SKIP_TOMBSTONES to "false"))
+        val transformedRecord = tempTransformer.apply(schemaExtractionRecord)
 
-        return transformedRecord.valueSchema()
+        return transformedRecord!!.valueSchema()
     }
 
     private val jsonWriterSettings =
@@ -324,7 +353,7 @@ class ClickHouseFlattenTransformerTest {
      * Helper function to compare Struct values field by field.
      * Needed because Struct.equals() compares object identity, not content.
      */
-    private fun compareSchemas(expectedSchema: Schema, actualSchema: Schema, path: String = "") {
+    private fun compareSchemas(expectedSchema: Schema, actualSchema: Schema?, path: String = "") {
         // Ensure schemas are not null
         assertNotNull(expectedSchema, "Expected schema cannot be null at $path")
         assertNotNull(actualSchema, "Actual schema cannot be null at $path")

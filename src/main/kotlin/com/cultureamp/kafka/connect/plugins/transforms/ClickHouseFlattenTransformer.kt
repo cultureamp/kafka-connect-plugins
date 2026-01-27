@@ -11,6 +11,9 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.transforms.Transformation
 import org.apache.kafka.connect.transforms.util.Requirements
 import org.apache.kafka.connect.transforms.util.SchemaUtil
+import kotlin.properties.Delegates
+
+
 
 /**
  * A ClickHouse-optimized flatten transformer that preserves native array and map types.
@@ -31,10 +34,27 @@ import org.apache.kafka.connect.transforms.util.SchemaUtil
  * @constructor Creates a ClickHouseFlattenTransformer Transformation<R> for a given ConnectRecord<T>
  */
 class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
+    companion object {
+        const val CONFIG_SKIP_TOMBSTONES = "skipTombstones"
+    }
+
     private val purpose = "ClickHouse™ Flatten Transform with Native Type Preservation"
     private val schemaUpdateCache = SynchronizedCache<Schema, Schema>(LRUCache<Schema, Schema>(16))
 
-    override fun configure(configs: MutableMap<String, *>?) {}
+    private var skipTombstones by Delegates.notNull<Boolean>()
+
+    override fun configure(configs: MutableMap<String, *>?) {
+        val skipTombstonesConfig = configs?.get(CONFIG_SKIP_TOMBSTONES)
+        skipTombstones = if (skipTombstonesConfig != null) {
+            when (skipTombstonesConfig) {
+                is String -> skipTombstonesConfig.toBoolean()
+                is Boolean -> skipTombstonesConfig
+                else -> throw RuntimeException("Unexpected value type for 'skipTombstones': ${skipTombstonesConfig.javaClass}")
+            }
+        } else {
+            true
+        }
+    }
 
     override fun config(): ConfigDef {
         return ConfigDef()
@@ -42,7 +62,7 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
 
     override fun close() {}
 
-    override fun apply(record: R): R {
+    override fun apply(record: R): R? {
         return targetPayload(record)
     }
 
@@ -158,8 +178,11 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
         }
     }
 
-    private fun targetPayload(record: R): R {
+    private fun targetPayload(record: R): R? {
         val sourceValue = Requirements.requireStructOrNull(record.value(), purpose)
+        if (skipTombstones && sourceValue == null)
+            return null
+
         val sourceSchema = record.valueSchema()
         var updatedSchema = schemaUpdateCache.get(sourceSchema)
         if (updatedSchema == null) {
