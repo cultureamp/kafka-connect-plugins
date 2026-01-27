@@ -13,8 +13,6 @@ import org.apache.kafka.connect.transforms.util.Requirements
 import org.apache.kafka.connect.transforms.util.SchemaUtil
 import kotlin.properties.Delegates
 
-
-
 /**
  * A ClickHouse-optimized flatten transformer that preserves native array and map types.
  *
