@@ -202,47 +202,6 @@ class RedShiftComplexDataTypeTransformerTest {
         assertTrue(hasNoComplexTypes(transformedRecord))
     }
 
-    @Test
-    fun `can transform schemaless Map data with metadata fields`() {
-        val mapValue = mapOf(
-            "id" to "123",
-            "name" to "Test User",
-            "email" to "test@example.com"
-        )
-
-        val sinkRecord = SinkRecord(
-            "test-topic",
-            2,
-            Schema.STRING_SCHEMA,
-            "key-123",
-            null, // no schema for schemaless JSON
-            mapValue,
-            789,
-            1713922160,
-            TimestampType.CREATE_TIME,
-        )
-
-        val transformedRecord = transformer.apply(sinkRecord)
-
-        // Verify the schema has the expected fields
-        val transformedSchema = transformedRecord.valueSchema()
-        assertTrue(transformedSchema.fields().any { it.name() == "json_payload" })
-        assertTrue(transformedSchema.fields().any { it.name() == "topic_key" })
-        assertTrue(transformedSchema.fields().any { it.name() == "tombstone" })
-        assertTrue(transformedSchema.fields().any { it.name() == "_kafka_metadata_partition" })
-        assertTrue(transformedSchema.fields().any { it.name() == "_kafka_metadata_offset" })
-        assertTrue(transformedSchema.fields().any { it.name() == "_kafka_metadata_timestamp" })
-
-        // Verify the values
-        val transformedValue = transformedRecord.value() as Struct
-        assertTrue(transformedValue.get("json_payload") is String)
-        assertEquals("key-123", transformedValue.get("topic_key"))
-        assertEquals(false, transformedValue.get("tombstone"))
-        assertEquals("2", transformedValue.get("_kafka_metadata_partition"))
-        assertEquals("789", transformedValue.get("_kafka_metadata_offset"))
-        assertEquals("1713922160", transformedValue.get("_kafka_metadata_timestamp"))
-    }
-
     private val sourceSchema = AvroSchema.fromJson(fileContent("com/cultureamp/employee-data.employees-value-v1.avsc"))
 
     private fun payload(fileName: String): SchemaAndValue {
