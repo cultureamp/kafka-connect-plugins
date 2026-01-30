@@ -11,6 +11,9 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.transforms.Transformation
 import org.apache.kafka.connect.transforms.util.Requirements
 import org.apache.kafka.connect.transforms.util.SchemaUtil
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import kotlin.properties.Delegates
 
 /**
  * A ClickHouse-optimized flatten transformer that preserves native array and map types.
@@ -31,10 +34,42 @@ import org.apache.kafka.connect.transforms.util.SchemaUtil
  * @constructor Creates a ClickHouseFlattenTransformer Transformation<R> for a given ConnectRecord<T>
  */
 class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
+    companion object {
+        const val CONFIG_SKIP_TOMBSTONES = "skipTombstones"
+        private const val SKIP_TOMBSTONES_DEFAULT = true
+        private val log: Logger = LoggerFactory.getLogger(ClickHouseFlattenTransformer::class.java)
+    }
+
     private val purpose = "ClickHouse™ Flatten Transform with Native Type Preservation"
     private val schemaUpdateCache = SynchronizedCache<Schema, Schema>(LRUCache<Schema, Schema>(16))
 
-    override fun configure(configs: MutableMap<String, *>?) {}
+    /**
+     * If enabled (default), tombstone messages will not be inserted into clickhouse.
+     *
+     * This is desirable for the realtime-analytics project because each table has account_id in the primary key
+     * and there's currently no way to get account_id from a tombstone, so there's no way to find the right row
+     * to update. Instead, we'll process the account delete events on the account topic and delete all records
+     * in all tables for the account.
+     *
+     * Other users of this transformer may want to enable tombstone processing, however consider first what to do with
+     * any non-nullable columns. The ClickHouse kafka connect sink currently errors if null is specified for a
+     * non-nullable column.
+     */
+    private var skipTombstones by Delegates.notNull<Boolean>()
+
+    override fun configure(configs: MutableMap<String, *>?) {
+        val skipTombstonesConfig = configs?.get(CONFIG_SKIP_TOMBSTONES)
+        skipTombstones = if (skipTombstonesConfig != null) {
+            when (skipTombstonesConfig) {
+                is String -> skipTombstonesConfig.toBoolean()
+                is Boolean -> skipTombstonesConfig
+                else -> throw RuntimeException("Unexpected value type for 'skipTombstones': ${skipTombstonesConfig.javaClass}")
+            }
+        } else {
+            SKIP_TOMBSTONES_DEFAULT
+        }
+        log.debug("Configured skipTombstones to $skipTombstones")
+    }
 
     override fun config(): ConfigDef {
         return ConfigDef()
@@ -42,7 +77,7 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
 
     override fun close() {}
 
-    override fun apply(record: R): R {
+    override fun apply(record: R): R? {
         return targetPayload(record)
     }
 
@@ -158,9 +193,15 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
         }
     }
 
-    private fun targetPayload(record: R): R {
+    private fun targetPayload(record: R): R? {
         val sourceValue = Requirements.requireStructOrNull(record.value(), purpose)
+        if (skipTombstones && sourceValue == null) {
+            log.info("Skipping tombstone message")
+            return null
+        }
+
         val sourceSchema = record.valueSchema()
+
         var updatedSchema = schemaUpdateCache.get(sourceSchema)
         if (updatedSchema == null) {
             val builder: SchemaBuilder = if (sourceSchema == null) {
