@@ -29,7 +29,7 @@ dependencies {
 
     // Kafka dependencies
     // Previous 3.6.0 version was flagged as vulnerability:
-    // CVE-2024-27309 https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHEKAFKA-6600922
+    // CVE-2024-27309
     implementation("org.apache.kafka:connect-api:$kafkaVersion")
     implementation("org.apache.kafka:connect-json:$kafkaVersion")
     implementation("org.apache.kafka:connect-transforms:$kafkaVersion")
@@ -39,7 +39,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test")
 
     // Use the Kotlin JUnit integration.
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter:5.14.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter:5.14.3")
 
     // CVE-2023-6378 https://logback.qos.ch/news.html#1.3.12
     implementation("ch.qos.logback:logback-classic:1.5.29")
