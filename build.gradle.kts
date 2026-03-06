@@ -2,7 +2,7 @@ val kafkaVersion = "3.9.2"
 
 plugins {
     // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
-    id("org.jetbrains.kotlin.jvm") version "1.9.25"
+    id("org.jetbrains.kotlin.jvm") version "2.3.10"
 
     // Add ktlint
     id("org.jmailen.kotlinter") version "3.6.0"
