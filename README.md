@@ -55,6 +55,61 @@ Assume the following configuration:
 
 Target Avro Schema: `resources/com/cultureamp/slack-integration-target-schema.avsc`
 
+## JsonToHexTransformer
+
+Converts schemaless JSON objects to hexadecimal format for storage in Redshift varbyte columns. This transformer takes the complete JSON payload (including nested fields) and converts it to a single hexadecimal string, making it suitable for Redshift varbyte columns which can handle up to 5MB of data.
+
+### Use Case
+When you have JSON data with nested structures that need to be stored in Redshift but don't want to flatten or lose the original structure, this transformer allows you to store the complete JSON as a hex-encoded string in a varbyte column. This is particularly useful for:
+- Complex nested JSON structures
+- JSON data that might have schema variations
+- Preserving complete JSON payloads for later processing
+
+### Configuration properties
+
+|Name|Description|Type|Default|Importance|
+|---|---|---|---|---|
+|`hex.field.name`|Name of the field to store the hex-encoded JSON payload|string|`json_hex`|MEDIUM|
+
+### Examples
+
+Assume the following configuration:
+
+```json
+"transforms": "JsonToHex",
+"transforms.JsonToHex.type": "com.cultureamp.kafka.connect.plugins.transforms.JsonToHexTransformer",
+"transforms.JsonToHex.hex.field.name": "json_payload_hex"
+```
+
+Example transformation:
+
+**Before:**
+```json
+{
+  "user": {
+    "name": "John Doe",
+    "details": {
+      "age": 30,
+      "city": "New York",
+      "preferences": ["coding", "reading"]
+    }
+  },
+  "metadata": {
+    "timestamp": "2023-01-01T00:00:00Z",
+    "version": 1
+  }
+}
+```
+
+**After:**
+```json
+{
+  "json_payload_hex": "7b2275736572223a7b226e616d65223a224a6f686e20446f65222c2264657461696c73223a7b22616765223a33302c2263697479223a224e657720596f726b222c22707265666572656e636573223a5b22636f64696e67222c227265616"
+}
+```
+
+The hex string can then be stored in a Redshift varbyte column and decoded back to the original JSON when needed.
+
 ## Installation
 This library is built as a single `.jar` and published as a Github release. To install in your Connect cluster, add the JAR file to a directory that is on the clusters `plugin.path`.
 
