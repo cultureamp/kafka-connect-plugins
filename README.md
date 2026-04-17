@@ -110,6 +110,40 @@ Example transformation:
 
 The hex string can then be stored in a Redshift varbyte column and decoded back to the original JSON when needed.
 
+## SoftDeleteToTombstoneTransformer
+
+Converts soft-deleted records into tombstones (null value) so that the JDBC Sink Connector issues a DELETE instead of an upsert. When a record's soft-delete field (e.g. `body.deleted_at`) is non-null, the transformer replaces the record value with null while preserving the key, enabling hard deletes downstream.
+
+### Configuration properties
+
+|Name|Description|Type|Default|Importance|
+|---|---|---|---|---|
+|`field`|Dot-notation path to the soft-delete field|string|`body.deleted_at`|HIGH|
+
+### Examples
+
+Assume the following configuration:
+
+```yaml
+transforms: "SoftDeleteToTombstone"
+transforms.SoftDeleteToTombstone.type: "com.cultureamp.kafka.connect.plugins.transforms.SoftDeleteToTombstoneTransformer"
+transforms.SoftDeleteToTombstone.field: "body.deleted_at"
+```
+
+**Before (soft-deleted record):**
+```json
+Key: {"id": "abc-123"}
+Value: {"body": {"deleted_at": 1700000000000, "name": "Test"}, "metadata": "..."}
+```
+
+**After (tombstone):**
+```json
+Key: {"id": "abc-123"}
+Value: null
+```
+
+Non-deleted records (where `body.deleted_at` is null) pass through unchanged.
+
 ## Installation
 This library is built as a single `.jar` and published as a Github release. To install in your Connect cluster, add the JAR file to a directory that is on the clusters `plugin.path`.
 
