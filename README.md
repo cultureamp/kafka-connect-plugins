@@ -144,6 +144,35 @@ Value: null
 
 Non-deleted records (where `body.deleted_at` is null) pass through unchanged.
 
+## UnquoteRecordKey
+
+Strips surrounding double quotes from string record keys. Some ECST topics store keys as JSON-encoded strings (e.g. `"37d8c6b0-..."` with extra quotes). This causes issues with JDBC Sink Connectors where the key is used as a primary key — the extra quotes result in invalid UUID syntax in PostgreSQL.
+
+This transform removes the surrounding quotes so the key is a clean value (e.g. `37d8c6b0-...`).
+
+### Configuration properties
+
+No configuration required.
+
+### Examples
+
+```yaml
+transforms: "StripKeyQuotes"
+transforms.StripKeyQuotes.type: "com.cultureamp.kafka.connect.plugins.transforms.UnquoteRecordKey"
+```
+
+**Before:**
+```
+Key: "\"37d8c6b0-941f-41bc-a50a-9559dd9cabf1\""
+```
+
+**After:**
+```
+Key: "37d8c6b0-941f-41bc-a50a-9559dd9cabf1"
+```
+
+Keys without surrounding quotes pass through unchanged.
+
 ## Installation
 This library is built as a single `.jar` and published as a Github release. To install in your Connect cluster, add the JAR file to a directory that is on the clusters `plugin.path`.
 
