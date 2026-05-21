@@ -52,6 +52,7 @@ class RedShiftComplexDataTypeTransformerTest {
     @Before
     fun setUp() {
         transformer = RedShiftComplexDataTypeTransformer()
+        transformer.configure(mutableMapOf<String, Any?>())
     }
 
     @Test

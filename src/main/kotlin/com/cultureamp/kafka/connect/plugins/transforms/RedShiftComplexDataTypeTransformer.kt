@@ -34,7 +34,9 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
     private val purpose = "RedShift™ Flatten and Complex Data Types to String Transform"
     private val schemaUpdateCache = SynchronizedCache<Schema, Schema>(LRUCache<Schema, Schema>(16))
 
-    override fun configure(configs: MutableMap<String, *>?) {}
+    override fun configure(configs: MutableMap<String, *>?) {
+        jsonConverter.configure(Collections.singletonMap("schemas.enable", false), true)
+    }
 
     override fun config(): ConfigDef {
         return ConfigDef()
@@ -178,8 +180,6 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
         val sourceValue = Requirements.requireStructOrNull(record.value(), purpose)
         val sourceSchema = record.valueSchema()
         var updatedSchema = schemaUpdateCache.get(sourceSchema)
-        val props = Collections.singletonMap("schemas.enable", false)
-        jsonConverter.configure(props, true)
         if (updatedSchema == null) {
             var builder: SchemaBuilder = SchemaUtil.copySchemaBasics(SchemaBuilder.struct())
             if (sourceSchema != null) {
