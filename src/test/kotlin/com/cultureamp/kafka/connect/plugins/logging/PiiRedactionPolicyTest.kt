@@ -139,6 +139,33 @@ class PiiRedactionPolicyTest {
     }
 
     @Test
+    fun `redacts a concatenated format string even when a throwable supplies a parameter`() {
+        // log.error("Failed: " + record, e) reaches log4j as a format string that is already
+        // fully rendered, with the throwable as the sole parameter. A "parameters are present"
+        // test would wrongly treat that rendered text as a safe pattern and keep it.
+        val msg = ParameterizedMessage(
+            "Failed: key=jo.tan@example.com salary=142000",
+            arrayOf<Any?>(RuntimeException("Sarah")),
+        )
+        val out = assertNotNull(policy().rewrite(event(Level.ERROR, "com.acme.X", msg)))
+        assertNoPii(out)
+        assertEquals("[REDACTED]", out.message.formattedMessage)
+    }
+
+    @Test
+    fun `does not over-supply arguments when slf4j appends a throwable`() {
+        // Surplus arguments make log4j emit a StatusLogger warning for every event.
+        val msg = parameterized(
+            "Write of {} records failed, remainingRetries={}",
+            3000, 4, RuntimeException("Sarah jo.tan@example.com"),
+        )
+        val out = assertNotNull(policy().rewrite(event(Level.WARN, "io.confluent.connect.jdbc.x", msg)))
+        assertNoPii(out)
+        assertEquals("Write of 3000 records failed, remainingRetries=4", out.message.formattedMessage)
+        assertEquals(2, out.message.parameters.size, "must pass exactly as many args as placeholders")
+    }
+
+    @Test
     fun `passes INFO through untouched`() {
         val input = event(
             Level.INFO,

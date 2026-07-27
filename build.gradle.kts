@@ -9,12 +9,6 @@ plugins {
     // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
     id("org.jetbrains.kotlin.jvm") version "1.9.21"
 
-    // Runs log4j2's PluginProcessor over the Kotlin sources to generate
-    // META-INF/org/apache/logging/log4j/core/config/plugins/Log4j2Plugins.dat. Without this
-    // descriptor, log4j2 cannot resolve <PiiRedactionPolicy> and the whole logging config fails
-    // to parse - which falls back to DefaultConfiguration and logs full messages to the console.
-    id("org.jetbrains.kotlin.kapt") version "1.9.21"
-
     // Add ktlint
     id("org.jmailen.kotlinter") version "3.6.0"
 
@@ -74,11 +68,42 @@ dependencies {
     implementation("org.mongodb.kafka:mongo-kafka-connect:1.7.0")
     implementation("org.mongodb:bson:4.5.1")
 
-    // log4j2, for PiiRedactionPolicy. compileOnly because the Connect image already provides
-    // these on the classpath - shipping our own copy risks two log4j versions at runtime.
+    // log4j2, for PiiRedactionPolicy. compileOnly because the Connect worker classpath already
+    // provides these - shipping our own copy risks two log4j versions at runtime.
     compileOnly("org.apache.logging.log4j:log4j-core:$log4jVersion")
     compileOnly("org.apache.logging.log4j:log4j-api:$log4jVersion")
-    kapt("org.apache.logging.log4j:log4j-core:$log4jVersion")
+
+    // Runs log4j2's PluginProcessor over src/main/java to generate
+    // META-INF/org/apache/logging/log4j/core/config/plugins/Log4j2Plugins.dat. Without that
+    // descriptor log4j2 cannot resolve <PiiRedactionPolicy>: it logs "Unable to invoke factory
+    // method", then builds the Rewrite appender with NO policy and passes every event through
+    // unredacted. javac runs this natively, so no kapt is needed.
+    annotationProcessor("org.apache.logging.log4j:log4j-core:$log4jVersion")
+
     testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")
     testImplementation("org.apache.logging.log4j:log4j-api:$log4jVersion")
+}
+
+// PiiRedactionPolicy must ship SEPARATELY from the SMT jar, because the two have different
+// deployment targets and different dependency budgets:
+//
+//   - SMTs      -> /usr/share/java/cultureamp-kafka-connect-plugins, on Connect's plugin.path,
+//                  loaded later by a connector classloader that has kotlin-stdlib.
+//   - log4j2    -> the Connect WORKER classpath, loaded at JVM startup by the system
+//     policies      classloader. kafka-run-class puts only share/java/kafka and
+//                  share/java/confluent-telemetry there, and kotlin-stdlib is on neither.
+//
+// So this jar contains only the Java logging package plus the generated plugin descriptor - no
+// Kotlin classes, no kotlin_module, nothing that needs kotlin-stdlib at runtime. Verified by
+// loading it in the cp-kafka-connect image with no Kotlin on the classpath.
+val log4jRedactionJar by tasks.registering(Jar::class) {
+    archiveBaseName.set("kafka-connect-log4j-redaction")
+    from(sourceSets.main.get().output) {
+        include("com/cultureamp/kafka/connect/plugins/logging/**")
+        include("META-INF/org/apache/logging/log4j/core/config/plugins/**")
+    }
+}
+
+tasks.named("assemble") {
+    dependsOn(log4jRedactionJar)
 }
