@@ -1,8 +1,19 @@
 val kafkaVersion = "3.6.2"
 
+// Must track the log4j version in the cp-kafka-connect image (docker/connect/Dockerfile in
+// kafka-ops). log4j2 plugins are loaded from a binary descriptor, so a major/minor mismatch
+// here can mean the plugin is silently not found at runtime.
+val log4jVersion = "2.25.3"
+
 plugins {
     // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
     id("org.jetbrains.kotlin.jvm") version "1.9.21"
+
+    // Runs log4j2's PluginProcessor over the Kotlin sources to generate
+    // META-INF/org/apache/logging/log4j/core/config/plugins/Log4j2Plugins.dat. Without this
+    // descriptor, log4j2 cannot resolve <PiiRedactionPolicy> and the whole logging config fails
+    // to parse - which falls back to DefaultConfiguration and logs full messages to the console.
+    id("org.jetbrains.kotlin.kapt") version "1.9.21"
 
     // Add ktlint
     id("org.jmailen.kotlinter") version "3.6.0"
@@ -62,4 +73,12 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.3")
     implementation("org.mongodb.kafka:mongo-kafka-connect:1.7.0")
     implementation("org.mongodb:bson:4.5.1")
+
+    // log4j2, for PiiRedactionPolicy. compileOnly because the Connect image already provides
+    // these on the classpath - shipping our own copy risks two log4j versions at runtime.
+    compileOnly("org.apache.logging.log4j:log4j-core:$log4jVersion")
+    compileOnly("org.apache.logging.log4j:log4j-api:$log4jVersion")
+    kapt("org.apache.logging.log4j:log4j-core:$log4jVersion")
+    testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")
+    testImplementation("org.apache.logging.log4j:log4j-api:$log4jVersion")
 }
