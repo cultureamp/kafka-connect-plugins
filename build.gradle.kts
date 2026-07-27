@@ -104,6 +104,15 @@ val log4jRedactionJar by tasks.registering(Jar::class) {
     }
 }
 
+// Keep the log4j policy OUT of the SMT jar. It is functionally harmless there - connector
+// classloaders do not scan for log4j plugin descriptors - but including it means a
+// logging-only change alters the SMT artifact's contents and checksum for no reason, and
+// kafka-ops pins that artifact by MD5.
+tasks.jar {
+    exclude("com/cultureamp/kafka/connect/plugins/logging/**")
+    exclude("META-INF/org/apache/logging/**")
+}
+
 tasks.named("assemble") {
     dependsOn(log4jRedactionJar)
 }
