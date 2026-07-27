@@ -305,15 +305,36 @@ public final class PiiRedactionPolicy implements RewritePolicy {
         // The cause must be passed to the constructor, never via initCause(): Throwable's 4-arg
         // constructor *sets* the cause field even when given null, after which initCause() throws
         // IllegalStateException("Can't overwrite cause").
-        final Throwable cause = sanitize(t.getCause(), seen, depth + 1);
-        final Throwable safe = new RedactedThrowable(t.getClass().getName() + ": " + REDACTED, cause);
-        if (keepStackFrames) {
-            safe.setStackTrace(t.getStackTrace());
+        // Each accessor is guarded independently. getCause(), getMessage() and getStackTrace()
+        // are all overridable, so a badly-behaved exception class from any plugin can throw from
+        // any of them. Without per-field guards one such accessor would fail the whole event and
+        // cost the entire class chain; with them we lose only the field that misbehaved.
+        // getClass() and getSuppressed() are final in Throwable and cannot misbehave.
+        Throwable cause = null;
+        try {
+            cause = sanitize(t.getCause(), seen, depth + 1);
+        } catch (final Throwable hostileGetCause) {
+            cause = null;
         }
+
+        final Throwable safe = new RedactedThrowable(t.getClass().getName() + ": " + REDACTED, cause);
+
+        if (keepStackFrames) {
+            try {
+                safe.setStackTrace(t.getStackTrace());
+            } catch (final Throwable hostileGetStackTrace) {
+                // Leave the frames RedactedThrowable was constructed with.
+            }
+        }
+
         for (final Throwable suppressed : t.getSuppressed()) {
-            final Throwable s = sanitize(suppressed, seen, depth + 1);
-            if (s != null) {
-                safe.addSuppressed(s);
+            try {
+                final Throwable s = sanitize(suppressed, seen, depth + 1);
+                if (s != null) {
+                    safe.addSuppressed(s);
+                }
+            } catch (final Throwable hostileSuppressed) {
+                // Drop this suppressed entry only.
             }
         }
         return safe;

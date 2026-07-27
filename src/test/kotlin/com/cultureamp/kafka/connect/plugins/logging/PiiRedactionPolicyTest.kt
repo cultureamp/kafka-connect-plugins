@@ -262,6 +262,92 @@ class PiiRedactionPolicyTest {
         assertEquals(before, PiiRedactionPolicy.panics(), "panics() must stay flat; see its KDoc")
     }
 
+    /**
+     * Exception classes are third-party code and every accessor except getClass() and
+     * getSuppressed() is overridable, so a plugin can throw from inside the logging path. The
+     * contract these tests lock in is: logging never breaks, and nothing leaks. Losing detail is
+     * acceptable; losing the log line is not.
+     */
+    private class HostileThrowable(private val mode: String) : RuntimeException("PII jo.tan@example.com") {
+        override fun getStackTrace(): Array<StackTraceElement> =
+            if (mode == "stack") throw RuntimeException("boom Sarah") else super.getStackTrace()
+
+        override val cause: Throwable?
+            get() = when (mode) {
+                "cause" -> throw RuntimeException("boom jo.tan@example.com")
+                "self" -> this
+                else -> super.cause
+            }
+
+        override val message: String?
+            get() = if (mode == "message") throw RuntimeException("boom Sarah") else super.message
+    }
+
+    @Test
+    fun `survives a throwable whose getStackTrace throws, keeping the class chain`() {
+        val out = assertNotNull(
+            policy().rewrite(event(Level.ERROR, "com.acme.X", SimpleMessage("m"), HostileThrowable("stack"))),
+        )
+        assertNoPii(out)
+        // Per-field guards mean one hostile accessor must not cost the whole chain.
+        assertNotNull(out.thrown, "a throwing getStackTrace() must not discard the throwable")
+        assertContains(out.thrown.message!!, "HostileThrowable")
+    }
+
+    @Test
+    fun `survives a throwable whose getCause throws`() {
+        val out = assertNotNull(
+            policy().rewrite(event(Level.ERROR, "com.acme.X", SimpleMessage("m"), HostileThrowable("cause"))),
+        )
+        assertNoPii(out)
+        assertNotNull(out.thrown)
+    }
+
+    @Test
+    fun `survives a throwable whose getMessage throws`() {
+        val out = assertNotNull(
+            policy().rewrite(event(Level.ERROR, "com.acme.X", SimpleMessage("m"), HostileThrowable("message"))),
+        )
+        assertNoPii(out)
+    }
+
+    @Test
+    fun `terminates when getCause returns the throwable itself`() {
+        val out = assertNotNull(
+            policy().rewrite(event(Level.ERROR, "com.acme.X", SimpleMessage("m"), HostileThrowable("self"))),
+        )
+        assertNoPii(out)
+    }
+
+    @Test
+    fun `survives a very deep cause chain`() {
+        var t: Throwable = RuntimeException("root jo.tan@example.com")
+        repeat(1000) { t = RuntimeException("level $it Sarah", t) }
+        val out = assertNotNull(policy().rewrite(event(Level.ERROR, "com.acme.X", SimpleMessage("m"), t)))
+        assertNoPii(out)
+    }
+
+    @Test
+    fun `redacts suppressed exceptions too`() {
+        val t = RuntimeException("outer jo.tan@example.com")
+        t.addSuppressed(IllegalStateException("suppressed Sarah"))
+        val out = assertNotNull(policy().rewrite(event(Level.ERROR, "com.acme.X", SimpleMessage("m"), t)))
+        assertNoPii(out)
+    }
+
+    @Test
+    fun `survives a message whose accessors throw`() {
+        val hostile = object : Message {
+            override fun getFormattedMessage() = "fmt jo.tan@example.com"
+            override fun getFormat(): String = throw RuntimeException("boom Sarah")
+            override fun getParameters(): Array<Any?> = arrayOf("x")
+            override fun getThrowable(): Throwable? = null
+        }
+        val out = assertNotNull(policy().rewrite(event(Level.ERROR, "com.acme.X", hostile)))
+        assertNoPii(out)
+        assertEquals("[REDACTED]", out.message.formattedMessage)
+    }
+
     @Test
     fun `reads the connector name out of the MDC`() {
         val e = event(Level.ERROR, "com.acme.X", SimpleMessage("x"))
