@@ -1,8 +1,5 @@
 package com.cultureamp.kafka.connect.plugins.logging
 
-import org.apache.kafka.connect.runtime.ConnectorConfig
-import org.apache.kafka.connect.runtime.WorkerSinkTask
-import org.apache.kafka.connect.util.ConnectorTaskId
 import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.core.LogEvent
 import org.apache.logging.log4j.core.impl.Log4jLogEvent
@@ -13,6 +10,7 @@ import org.apache.logging.log4j.util.SortedArrayStringMap
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.sql.BatchUpdateException
+import java.sql.SQLException
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -25,9 +23,16 @@ import kotlin.test.assertTrue
 /**
  * Test class for PiiRedactionPolicy.
  *
- * The PII strings below are modelled on the real DASE-3667 leak: the log message itself was
- * clean ("Error during write operation. Attempting rollback.") and every sensitive value was
- * inside the throwable's cause chain, inlined by the Redshift driver's batch-abort handler.
+ * The shapes below are taken from real production events. Two matter most, because they are why
+ * redaction is chain-wide rather than scoped to the SQLException itself:
+ *
+ *  - outer ConnectException with a CLEAN message ("Exiting WorkerSinkTask due to unrecoverable
+ *    exception.") and the inlined INSERT in its cause;
+ *  - outer RetriableException whose OWN message is "java.sql.SQLException: Exception chain: ..."
+ *    carrying the inlined INSERT, because Throwable(Throwable) copies cause.toString().
+ *
+ * JdbcSinkTask.getAllMessagesException also builds a NEW plain SQLException whose message is the
+ * concatenation of the whole chain, so the payload escapes upward out of the typed exception.
  */
 class PiiRedactionPolicyTest {
 
@@ -35,11 +40,8 @@ class PiiRedactionPolicyTest {
         "Sarah", "resigning", "jo.tan", "example.com", "VALUES (", "142000", "emp-9931",
     )
 
-    private fun policy(
-        redactAtOrAbove: String = "ERROR",
-        aggressiveAtOrAbove: String = "WARN",
-        aggressiveLoggers: String? = "io.confluent.connect.jdbc,org.apache.kafka.connect.runtime.errors",
-    ) = PiiRedactionPolicy.createPolicy(redactAtOrAbove, aggressiveAtOrAbove, aggressiveLoggers, true)
+    private fun policy(untrustedLoggers: String? = "org.apache.kafka.connect.runtime.errors") =
+        PiiRedactionPolicy.createPolicy(untrustedLoggers)
 
     private fun event(
         level: Level,
@@ -68,8 +70,7 @@ class PiiRedactionPolicyTest {
     /**
      * ParameterizedMessage overloads both (String, Object...) and (String, Object), so passing a
      * Kotlin array without the spread operator binds to the single-argument overload and leaves
-     * every {} after the first unsubstituted. This helper exists so no test can make that mistake
-     * silently - the production code has the same trap, see PiiRedactionPolicy.redactMessage.
+     * every {} after the first unsubstituted.
      */
     private fun parameterized(format: String, vararg args: Any?): ParameterizedMessage =
         ParameterizedMessage(format, *args)
@@ -81,246 +82,206 @@ class PiiRedactionPolicyTest {
         }
     }
 
-    /** The exact incident shape: clean message, all PII in the cause chain. */
-    private fun incidentThrowable(): Throwable {
-        val root = RuntimeException(
-            "Batch entry 0 INSERT INTO datalake.incoming.conversations_conversations-attachments_v0" +
-                "(id,note_content_text_plain) VALUES ('a3f1c2d4-1111-2222-3333-444455556666'," +
-                "'Sarah mentioned she is struggling with her manager and is considering resigning') " +
-                "was aborted: ERROR: value too long for type character varying(256)",
+    /** The raw driver exception, as JdbcDbWriter logs it. */
+    private fun batchAbort(): BatchUpdateException = BatchUpdateException(
+        "Batch entry 0 INSERT INTO datalake.incoming.conversations_conversations-attachments_v0" +
+            "(id,note_content_text_plain) VALUES ('a3f1c2d4-1111'," +
+            "'Sarah mentioned she is struggling and is considering resigning') was aborted",
+        IntArray(0),
+        null,
+    )
+
+    /** Production shape: outer message clean, payload in the cause. */
+    private fun cleanOuterPoisonedCause(): Throwable {
+        val synthetic = SQLException("Exception chain:\n" + batchAbort())
+        return org.apache.kafka.connect.errors.ConnectException(
+            "Exiting WorkerSinkTask due to unrecoverable exception.",
+            synthetic,
         )
-        return BatchUpdateException("Sarah is resigning", IntArray(0), root)
     }
 
-    @Test
-    fun `redacts the message and the whole cause chain at ERROR`() {
-        val out = policy().rewrite(
-            event(
-                Level.ERROR,
-                "io.confluent.connect.jdbc.sink.JdbcSinkTask",
-                SimpleMessage("Error during write operation. Attempting rollback."),
-                incidentThrowable(),
-            ),
-        )
-        assertNotNull(out)
-        assertNoPii(out)
-        assertEquals("[REDACTED]", out.message.formattedMessage)
+    /** Production shape: wrapper copied cause.toString(), so its OWN message carries the payload. */
+    private fun poisonedOuter(): Throwable {
+        val synthetic = SQLException("Exception chain:\n" + batchAbort())
+        return org.apache.kafka.connect.errors.RetriableException(synthetic.toString(), synthetic)
     }
 
-    @Test
-    fun `preserves exception class names and stack frames`() {
-        val original = incidentThrowable()
-        val out = policy().rewrite(
-            event(Level.ERROR, "io.confluent.connect.jdbc.sink.JdbcSinkTask", SimpleMessage("boom"), original),
-        )
-        val thrown = assertNotNull(out?.thrown)
-
-        // The class chain is what makes a redacted error diagnosable at all.
-        assertContains(thrown.message!!, BatchUpdateException::class.java.name)
-        assertContains(assertNotNull(thrown.cause).message!!, RuntimeException::class.java.name)
-        assertTrue(original.stackTrace.contentEquals(thrown.stackTrace), "stack frames not preserved")
-    }
+    // ---------------------------------------------------------------- the gate
 
     @Test
-    fun `keeps the format string and numeric arguments but scrubs the rest`() {
-        val out = policy().rewrite(
-            event(
-                Level.WARN,
-                "io.confluent.connect.jdbc.sink.JdbcSinkTask",
-                parameterized(
-                    "Write of {} records failed, remainingRetries={}, record={}",
-                    3000, 4, "key=jo.tan@example.com salary=142000",
+    fun `redacts when the payload is in the cause and the outer message is clean`() {
+        val out = assertNotNull(
+            policy().rewrite(
+                event(
+                    Level.ERROR,
+                    "org.apache.kafka.connect.runtime.WorkerTask",
+                    parameterized(
+                        "{} Task threw an uncaught and unrecoverable exception.",
+                        "WorkerSinkTask{id=falcon.datalake-careerpathways-competencies-v3-0}",
+                    ),
+                    cleanOuterPoisonedCause(),
                 ),
             ),
         )
-        assertNotNull(out)
         assertNoPii(out)
-        assertEquals(
-            "Write of 3000 records failed, remainingRetries=4, record=[REDACTED]",
+        // The log message survives: which connector and task, and what happened.
+        assertContains(
             out.message.formattedMessage,
+            "WorkerSinkTask{id=falcon.datalake-careerpathways-competencies-v3-0}",
         )
+        assertContains(out.message.formattedMessage, "uncaught and unrecoverable exception")
     }
 
     @Test
-    fun `redacts a concatenated format string even when a throwable supplies a parameter`() {
-        // log.error("Failed: " + record, e) reaches log4j as a format string that is already
-        // fully rendered, with the throwable as the sole parameter. A "parameters are present"
-        // test would wrongly treat that rendered text as a safe pattern and keep it.
-        val msg = ParameterizedMessage(
-            "Failed: key=jo.tan@example.com salary=142000",
-            arrayOf<Any?>(RuntimeException("Sarah")),
+    fun `redacts when the wrapper copied the payload into its own message`() {
+        val out = assertNotNull(
+            policy().rewrite(
+                event(
+                    Level.ERROR,
+                    "org.apache.kafka.connect.runtime.WorkerSinkTask",
+                    parameterized(
+                        "{} RetriableException from SinkTask:",
+                        "WorkerSinkTask{id=production-au.datalake-anytime-feedback-feedbacks-v1-0}",
+                    ),
+                    poisonedOuter(),
+                ),
+            ),
         )
-        val out = assertNotNull(policy().rewrite(event(Level.ERROR, "com.acme.X", msg)))
+        assertNoPii(out)
+    }
+
+    @Test
+    fun `redacts a bare driver exception with no wrapper`() {
+        // JdbcDbWriter: log.error("Error during write operation. Attempting rollback.", e)
+        val out = assertNotNull(
+            policy().rewrite(
+                event(
+                    Level.ERROR,
+                    "io.confluent.connect.jdbc.sink.JdbcDbWriter",
+                    SimpleMessage("Error during write operation. Attempting rollback."),
+                    batchAbort(),
+                ),
+            ),
+        )
+        assertNoPii(out)
+    }
+
+    @Test
+    fun `redacts when the SQLException is buried below a non-SQL wrapper`() {
+        // 12 of 36 production leaks had a bare java.lang.Throwable as the outermost type. Scoping
+        // by outer type, or to BatchUpdateException, would have missed a third of them.
+        val buried = Throwable("wrapper", RuntimeException("mid", batchAbort()))
+        val out = assertNotNull(
+            policy().rewrite(event(Level.ERROR, "com.acme.X", SimpleMessage("boom"), buried)),
+        )
+        assertNoPii(out)
+    }
+
+    @Test
+    fun `redacts a suppressed SQLException`() {
+        val outer = RuntimeException("outer")
+        outer.addSuppressed(batchAbort())
+        val out = assertNotNull(
+            policy().rewrite(event(Level.ERROR, "com.acme.X", SimpleMessage("boom"), outer)),
+        )
+        assertNoPii(out)
+    }
+
+    @Test
+    fun `redacts the LogReporter record dump, which has no exception at all`() {
+        // errors.log.include.messages builds the record into the message by concatenation. No
+        // throwable, so no type check can see it - hence the logger prefix.
+        val out = assertNotNull(
+            policy().rewrite(
+                event(
+                    Level.ERROR,
+                    "org.apache.kafka.connect.runtime.errors.LogReporter",
+                    SimpleMessage("Error encountered, consumed record is {key='emp-9931', value='jo.tan@example.com'}"),
+                ),
+            ),
+        )
         assertNoPii(out)
         assertEquals("[REDACTED]", out.message.formattedMessage)
     }
 
-    @Test
-    fun `does not over-supply arguments when slf4j appends a throwable`() {
-        // Surplus arguments make log4j emit a StatusLogger warning for every event.
-        val msg = parameterized(
-            "Write of {} records failed, remainingRetries={}",
-            3000, 4, RuntimeException("Sarah jo.tan@example.com"),
-        )
-        val out = assertNotNull(policy().rewrite(event(Level.WARN, "io.confluent.connect.jdbc.x", msg)))
-        assertNoPii(out)
-        assertEquals("Write of 3000 records failed, remainingRetries=4", out.message.formattedMessage)
-        assertEquals(2, out.message.parameters.size, "must pass exactly as many args as placeholders")
-    }
-
-    /**
-     * Worker.stopAndAwaitTask logs "Graceful stop of task {} failed." on the DistributedHerder
-     * thread, so Connect's MDC is not populated and there is no connector.context to fall back on.
-     * In a four-hour dev window this was the largest single ERROR pattern - 401 events - and every
-     * one of them said only that "some task" failed to stop, because the ConnectorTaskId argument
-     * was being scrubbed. These tests pin the allowlist that recovers it.
-     *
-     * The org.apache.kafka.* stubs under src/test/java exist because the policy matches by class
-     * NAME, and the real classes are in connect-runtime, which this repo does not depend on.
-     */
-    private fun gracefulStop(param: Any?) = event(
-        Level.ERROR,
-        "org.apache.kafka.connect.runtime.Worker",
-        parameterized("Graceful stop of task {} failed.", param),
-    )
+    // ------------------------------------------------------- passes through
 
     @Test
-    fun `keeps a ConnectorTaskId argument so the failing connector stays identifiable`() {
-        val id = ConnectorTaskId("falcon.datalake-conversations-conversations-attachments-v0", 0)
-        val out = assertNotNull(policy().rewrite(gracefulStop(id)))
-        assertEquals(
-            "Graceful stop of task falcon.datalake-conversations-conversations-attachments-v0-0 failed.",
-            out.message.formattedMessage,
-        )
-    }
-
-    @Test
-    fun `keeps a WorkerSinkTask argument`() {
-        val out = assertNotNull(policy().rewrite(gracefulStop(WorkerSinkTask("elk.roles-service-employees-v1-0"))))
-        assertContains(out.message.formattedMessage, "WorkerSinkTask{id=elk.roles-service-employees-v1-0}")
-    }
-
-    @Test
-    fun `does not allowlist other classes in the connect runtime package`() {
-        // Same package as WorkerSinkTask, but its toString carries credentials. The allowlist must
-        // be exact class names, never a package prefix.
-        val out = assertNotNull(policy().rewrite(gracefulStop(ConnectorConfig())))
-        assertNoPii(out)
-        assertEquals("Graceful stop of task [REDACTED] failed.", out.message.formattedMessage)
-    }
-
-    @Test
-    fun `still redacts an unrecognised object argument`() {
-        val record = object {
-            override fun toString() = "Sarah jo.tan@example.com"
-        }
-        val out = assertNotNull(policy().rewrite(gracefulStop(record)))
-        assertNoPii(out)
-        assertEquals("Graceful stop of task [REDACTED] failed.", out.message.formattedMessage)
-    }
-
-    @Test
-    fun `passes INFO through untouched`() {
+    fun `passes a non-SQL error through completely untouched`() {
         val input = event(
-            Level.INFO,
-            "org.apache.kafka.connect.runtime.WorkerSinkTask",
-            SimpleMessage("Committing offsets for 512 acknowledged messages"),
+            Level.ERROR,
+            "org.apache.kafka.clients.consumer.internals.ClassicKafkaConsumer",
+            parameterized(
+                "Failed to close {} with type {}",
+                "coordinator",
+                "org.apache.kafka.connect.runtime.distributed.WorkerCoordinator",
+            ),
+            org.apache.kafka.common.errors.InterruptException(InterruptedException()),
         )
-        assertSame(input, policy().rewrite(input), "INFO must not be rewritten at all")
+        assertSame(input, policy().rewrite(input), "no SQLException in chain: must not be rewritten")
     }
 
     @Test
-    fun `passes WARN through untouched on loggers that are not aggressive`() {
+    fun `passes a herder shutdown error through with its message intact`() {
         val input = event(
-            Level.WARN,
-            "org.apache.kafka.connect.runtime.WorkerSinkTask",
-            parameterized("Commit of {} offsets timed out after {}ms", 512, 5000),
+            Level.ERROR,
+            "org.apache.kafka.connect.runtime.distributed.DistributedHerder",
+            SimpleMessage("Uncaught exception in herder work thread, exiting:"),
+            org.apache.kafka.connect.errors.ConnectException(
+                "Failed to stop KafkaBasedLog. Exiting without cleanly shutting down it's producer and consumer.",
+                InterruptedException(),
+            ),
         )
         assertSame(input, policy().rewrite(input))
     }
 
     @Test
-    fun `redacts WARN on aggressive loggers because JdbcSinkTask logs SQLException on retry`() {
+    fun `passes INFO and WARN through untouched`() {
+        listOf(Level.INFO, Level.WARN, Level.DEBUG).forEach { level ->
+            val input = event(
+                level,
+                "org.apache.kafka.connect.runtime.WorkerSinkTask",
+                parameterized("Committing offsets for {} acknowledged messages", 512),
+            )
+            assertSame(input, policy().rewrite(input), "$level with no SQLException must pass through")
+        }
+    }
+
+    @Test
+    fun `redacts DEBUG when the chain has a SQLException`() {
+        // JdbcSinkTask's exhausted-retries ERROR tells you to enable DEBUG for detail. The old
+        // level-threshold design let that through unredacted; there are no levels now.
         val input = event(
-            Level.WARN,
+            Level.DEBUG,
             "io.confluent.connect.jdbc.sink.JdbcSinkTask",
-            SimpleMessage("Write failed for Sarah"),
-            incidentThrowable(),
+            SimpleMessage("Exception chain:"),
+            batchAbort(),
         )
         val out = assertNotNull(policy().rewrite(input))
-        assertFalse(out === input, "aggressive loggers must be redacted at WARN")
+        assertFalse(out === input, "DEBUG with a SQLException must be redacted")
         assertNoPii(out)
     }
 
-    @Test
-    fun `redacts the LogReporter record dump`() {
-        val out = policy().rewrite(
-            event(
-                Level.ERROR,
-                "org.apache.kafka.connect.runtime.errors.LogReporter",
-                SimpleMessage(
-                    "Error encountered, consumed record is {key='emp-9931', " +
-                        "value='{\"email\":\"jo.tan@example.com\",\"salary\":142000}'}",
-                ),
-            ),
-        )
-        assertNoPii(assertNotNull(out))
-    }
+    // ------------------------------------------ redacted-path message handling
 
     @Test
-    fun `terminates on a cyclic cause chain`() {
-        val outer = RuntimeException("outer Sarah")
-        val inner = RuntimeException("inner jo.tan@example.com", outer)
-        runCatching { outer.initCause(inner) } // legal to attempt; may throw, either way it must not hang
-
-        val out = assertNotNull(policy().rewrite(event(Level.ERROR, "com.acme.X", SimpleMessage("boom"), inner)))
-        assertNoPii(out)
-    }
-
-    @Test
-    fun `redacts an unclassifiable event rather than passing it through`() {
-        val noLevel = Log4jLogEvent.newBuilder()
-            .setLoggerName("com.acme.X")
-            .setMessage(SimpleMessage("Sarah jo.tan@example.com"))
-            .build()
-        // Level defaults rather than being null in practice; assert the message is gone regardless.
-        assertNoPii(assertNotNull(policy(redactAtOrAbove = "TRACE").rewrite(noLevel)))
-    }
-
-    @Test
-    fun `an unparseable level tightens redaction rather than disabling it`() {
-        val p = PiiRedactionPolicy.createPolicy("NOT_A_LEVEL", "ALSO_NOT", null, true)
+    fun `preserves exception class names and stack frames`() {
+        val original = cleanOuterPoisonedCause()
         val out = assertNotNull(
-            p.rewrite(event(Level.ERROR, "com.acme.X", SimpleMessage("Sarah jo.tan@example.com"))),
+            policy().rewrite(event(Level.ERROR, "com.acme.X", SimpleMessage("boom"), original)),
         )
-        assertNoPii(out)
+        val thrown = assertNotNull(out.thrown)
+        assertContains(thrown.message!!, "org.apache.kafka.connect.errors.ConnectException")
+        assertContains(assertNotNull(thrown.cause).message!!, "java.sql.SQLException")
+        assertTrue(original.stackTrace.contentEquals(thrown.stackTrace), "stack frames not preserved")
     }
 
-    @Test
-    fun `null message and null throwable do not panic`() {
-        val before = PiiRedactionPolicy.panics()
-        val out = policy().rewrite(event(Level.ERROR, "com.acme.X", SimpleMessage("x"), null))
-        assertNotNull(out)
-        assertNull(out.thrown)
-        assertEquals(before, PiiRedactionPolicy.panics(), "should not have hit the fallback path")
-    }
-
-    @Test
-    fun `does not hit the fail-closed fallback for any normal event`() {
-        val before = PiiRedactionPolicy.panics()
-        listOf(
-            event(Level.ERROR, "io.confluent.connect.jdbc.x", SimpleMessage("a"), incidentThrowable()),
-            event(Level.WARN, "org.apache.kafka.connect.runtime.errors.LogReporter", SimpleMessage("b")),
-            event(Level.INFO, "com.acme.X", parameterized("c {}", 1)),
-        ).forEach { policy().rewrite(it) }
-        assertEquals(before, PiiRedactionPolicy.panics(), "panics() must stay flat; see its KDoc")
-    }
+    // ------------------------------------------------------------- resilience
 
     /**
      * Exception classes are third-party code and every accessor except getClass() and
      * getSuppressed() is overridable, so a plugin can throw from inside the logging path. The
-     * contract these tests lock in is: logging never breaks, and nothing leaks. Losing detail is
-     * acceptable; losing the log line is not.
+     * contract: logging never breaks, and nothing leaks. Losing detail is acceptable.
      */
     private class HostileThrowable(private val mode: String) : RuntimeException("PII jo.tan@example.com") {
         override fun getStackTrace(): Array<StackTraceElement> =
@@ -338,31 +299,24 @@ class PiiRedactionPolicyTest {
     }
 
     @Test
-    fun `survives a throwable whose getStackTrace throws, keeping the class chain`() {
-        val out = assertNotNull(
-            policy().rewrite(event(Level.ERROR, "com.acme.X", SimpleMessage("m"), HostileThrowable("stack"))),
-        )
-        assertNoPii(out)
-        // Per-field guards mean one hostile accessor must not cost the whole chain.
-        assertNotNull(out.thrown, "a throwing getStackTrace() must not discard the throwable")
-        assertContains(out.thrown.message!!, "HostileThrowable")
-    }
-
-    @Test
-    fun `survives a throwable whose getCause throws`() {
+    fun `fails closed when getCause throws while walking the chain`() {
+        // chainHasSqlException cannot prove the chain is clean, so it must assume it is not.
         val out = assertNotNull(
             policy().rewrite(event(Level.ERROR, "com.acme.X", SimpleMessage("m"), HostileThrowable("cause"))),
         )
         assertNoPii(out)
-        assertNotNull(out.thrown)
     }
 
     @Test
-    fun `survives a throwable whose getMessage throws`() {
+    fun `survives a throwable whose getStackTrace throws, keeping the class chain`() {
+        val hostile = HostileThrowable("stack")
+        hostile.addSuppressed(batchAbort()) // make the chain untrusted so it takes the redact path
         val out = assertNotNull(
-            policy().rewrite(event(Level.ERROR, "com.acme.X", SimpleMessage("m"), HostileThrowable("message"))),
+            policy().rewrite(event(Level.ERROR, "com.acme.X", SimpleMessage("m"), hostile)),
         )
         assertNoPii(out)
+        assertNotNull(out.thrown, "a throwing getStackTrace() must not discard the throwable")
+        assertContains(out.thrown.message!!, "HostileThrowable")
     }
 
     @Test
@@ -374,37 +328,94 @@ class PiiRedactionPolicyTest {
     }
 
     @Test
-    fun `survives a very deep cause chain`() {
-        var t: Throwable = RuntimeException("root jo.tan@example.com")
+    fun `terminates on a very deep cause chain`() {
+        var t: Throwable = batchAbort()
         repeat(1000) { t = RuntimeException("level $it Sarah", t) }
         val out = assertNotNull(policy().rewrite(event(Level.ERROR, "com.acme.X", SimpleMessage("m"), t)))
         assertNoPii(out)
     }
 
     @Test
-    fun `redacts suppressed exceptions too`() {
-        val t = RuntimeException("outer jo.tan@example.com")
-        t.addSuppressed(IllegalStateException("suppressed Sarah"))
-        val out = assertNotNull(policy().rewrite(event(Level.ERROR, "com.acme.X", SimpleMessage("m"), t)))
-        assertNoPii(out)
-    }
-
-    @Test
     fun `survives a message whose accessors throw`() {
+        // getFormat() throwing must not break logging. The message is not rewritten at all now,
+        // so the guarantee here is only that the event survives and the throwable is sanitised.
         val hostile = object : Message {
-            override fun getFormattedMessage() = "fmt jo.tan@example.com"
-            override fun getFormat(): String = throw RuntimeException("boom Sarah")
+            override fun getFormattedMessage() = "boom"
+            override fun getFormat(): String = throw RuntimeException("hostile")
             override fun getParameters(): Array<Any?> = arrayOf("x")
             override fun getThrowable(): Throwable? = null
         }
-        val out = assertNotNull(policy().rewrite(event(Level.ERROR, "com.acme.X", hostile)))
-        assertNoPii(out)
-        assertEquals("[REDACTED]", out.message.formattedMessage)
+        val before = PiiRedactionPolicy.panics()
+        val out = assertNotNull(policy().rewrite(event(Level.ERROR, "com.acme.X", hostile, batchAbort())))
+        assertContains(assertNotNull(out.thrown).message!!, "[REDACTED]")
+        assertEquals(before, PiiRedactionPolicy.panics(), "must not have needed the fallback")
+    }
+
+    /**
+     * ACCEPTED RESIDUAL, pinned deliberately.
+     *
+     * Log messages are never rewritten. Across 3,728 production error events over 13 days, zero
+     * had a payload in the message field and 37+ had one in an exception message - so the message
+     * machinery this class used to carry (format-string preservation, argument scrubbing, an
+     * identifier allowlist) was removed as unnecessary, along with three bugs that lived in it.
+     *
+     * The cost is this: a call site that concatenates record data into a log message is NOT
+     * covered, even when a SQLException is present. If that ever shows up in real logs, this test
+     * is the one to change - and the fix is a message-redaction branch on the untrusted path, not
+     * a return to per-argument scrubbing.
+     *
+     * LogReporter, the one known concatenating logger, is covered by untrustedLoggers instead.
+     */
+    @Test
+    fun `does not redact a log message even on a SQL chain - accepted residual`() {
+        val out = assertNotNull(
+            policy().rewrite(
+                event(
+                    Level.ERROR,
+                    "com.acme.SomePlugin",
+                    SimpleMessage("Failed on record key=jo.tan@example.com"),
+                    batchAbort(),
+                ),
+            ),
+        )
+        // Message passes through untouched - this is the documented limitation.
+        assertEquals("Failed on record key=jo.tan@example.com", out.message.formattedMessage)
+        // The throwable is still sanitised, which is where every measured leak actually was.
+        assertContains(assertNotNull(out.thrown).message!!, "[REDACTED]")
+        assertFalse(rendered(out).contains("VALUES ("), "exception payload must still be gone")
     }
 
     @Test
-    fun `reads the connector name out of the MDC`() {
-        val e = event(Level.ERROR, "com.acme.X", SimpleMessage("x"))
-        assertEquals("datalake-conversations-attachments-v0", PiiRedactionPolicy.connectorName(e))
+    fun `null message and null throwable do not panic`() {
+        val before = PiiRedactionPolicy.panics()
+        val out = policy().rewrite(
+            event(Level.ERROR, "org.apache.kafka.connect.runtime.errors.LogReporter", SimpleMessage("x")),
+        )
+        assertNotNull(out)
+        assertNull(out.thrown)
+        assertEquals(before, PiiRedactionPolicy.panics(), "should not have hit the fallback path")
+    }
+
+    @Test
+    fun `does not hit the fail-closed fallback for any normal event`() {
+        val before = PiiRedactionPolicy.panics()
+        listOf(
+            event(Level.ERROR, "io.confluent.connect.jdbc.x", SimpleMessage("a"), poisonedOuter()),
+            event(Level.ERROR, "org.apache.kafka.connect.runtime.errors.LogReporter", SimpleMessage("b")),
+            event(Level.INFO, "com.acme.X", parameterized("c {}", 1)),
+        ).forEach { policy().rewrite(it) }
+        assertEquals(before, PiiRedactionPolicy.panics(), "panics() must stay flat; see its KDoc")
+    }
+
+    // ------------------------------------------------------------------ config
+
+    @Test
+    fun `an empty untrusted logger list still redacts SQL chains`() {
+        val out = assertNotNull(
+            policy(untrustedLoggers = null).rewrite(
+                event(Level.ERROR, "com.acme.X", SimpleMessage("m"), batchAbort()),
+            ),
+        )
+        assertNoPii(out)
     }
 }
