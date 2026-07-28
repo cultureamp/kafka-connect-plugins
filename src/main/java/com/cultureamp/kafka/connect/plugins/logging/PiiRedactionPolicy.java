@@ -15,7 +15,9 @@ import org.apache.logging.log4j.status.StatusLogger;
 import org.apache.logging.log4j.util.ReadOnlyStringMap;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
@@ -96,6 +98,34 @@ public final class PiiRedactionPolicy implements RewritePolicy {
     private static final String CONNECTOR_CONTEXT = "connector.context";
 
     private static final AtomicLong PANIC_COUNT = new AtomicLong();
+
+    /**
+     * Connect identifier types whose {@code toString()} carries a connector or task name and
+     * nothing else. Their log arguments are infrastructure metadata, not record data.
+     *
+     * <p>Added because without them the largest single ERROR pattern in the fleet -
+     * {@code Worker.stopAndAwaitTask}'s {@code "Graceful stop of task {} failed."} - lost the only
+     * thing identifying which connector it referred to. That call runs on the DistributedHerder
+     * thread, not a task thread, so Connect's MDC is not populated and there is no
+     * {@code connector.context} to fall back on: 401 events in a four-hour dev window said only
+     * that "some task" failed to stop. Verified from the connect-runtime bytecode that the
+     * argument is {@code WorkerTask.id()}, which returns a ConnectorTaskId.
+     *
+     * <p>Matched by class NAME, deliberately - see {@link #scrubParam}.
+     *
+     * <p>Deliberately NOT a package prefix such as {@code org.apache.kafka.connect.runtime.*}:
+     * that package also contains {@code ConnectorConfig}, whose {@code toString()} would dump
+     * connector configuration. Each entry here is an assertion about one specific
+     * {@code toString()} implementation and should be re-checked on a Connect upgrade - unlike
+     * class names and stack frames, which cannot carry runtime data by construction.
+     */
+    private static final Set<String> SAFE_PARAM_TYPES = Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList(
+                    // "<connector>-<taskNum>"
+                    "org.apache.kafka.connect.util.ConnectorTaskId",
+                    // "WorkerSinkTask{id=<connector>-<taskNum>}"
+                    "org.apache.kafka.connect.runtime.WorkerSinkTask",
+                    "org.apache.kafka.connect.runtime.WorkerSourceTask")));
 
     private final Level redactAtOrAbove;
     private final Level aggressiveAtOrAbove;
@@ -266,6 +296,11 @@ public final class PiiRedactionPolicy implements RewritePolicy {
      * make a Connect log readable; everything else - String, SinkRecord, Struct, byte[] - is
      * assumed to carry data.
      *
+     * <p>Also allows a small set of Connect identifier types, matched <b>by class name rather than
+     * instanceof</b> so this jar keeps its zero-dependency property: it must load from the Connect
+     * worker classpath needing nothing beyond log4j-core, so it cannot compile against
+     * connect-api or connect-runtime. See {@link #SAFE_PARAM_TYPES}.
+     *
      * <p>Residual risk, stated plainly: a numeric value that is itself sensitive (a salary, an
      * employee id) would survive if a call site passed it as a log argument. No Connect framework
      * logger does this, but a third-party plugin could. Redact all parameters if that is not an
@@ -276,6 +311,9 @@ public final class PiiRedactionPolicy implements RewritePolicy {
             return null;
         }
         if (param instanceof Number || param instanceof Boolean) {
+            return param;
+        }
+        if (SAFE_PARAM_TYPES.contains(param.getClass().getName())) {
             return param;
         }
         return REDACTED;

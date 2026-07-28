@@ -1,5 +1,8 @@
 package com.cultureamp.kafka.connect.plugins.logging
 
+import org.apache.kafka.connect.runtime.ConnectorConfig
+import org.apache.kafka.connect.runtime.WorkerSinkTask
+import org.apache.kafka.connect.util.ConnectorTaskId
 import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.core.LogEvent
 import org.apache.logging.log4j.core.impl.Log4jLogEvent
@@ -163,6 +166,57 @@ class PiiRedactionPolicyTest {
         assertNoPii(out)
         assertEquals("Write of 3000 records failed, remainingRetries=4", out.message.formattedMessage)
         assertEquals(2, out.message.parameters.size, "must pass exactly as many args as placeholders")
+    }
+
+    /**
+     * Worker.stopAndAwaitTask logs "Graceful stop of task {} failed." on the DistributedHerder
+     * thread, so Connect's MDC is not populated and there is no connector.context to fall back on.
+     * In a four-hour dev window this was the largest single ERROR pattern - 401 events - and every
+     * one of them said only that "some task" failed to stop, because the ConnectorTaskId argument
+     * was being scrubbed. These tests pin the allowlist that recovers it.
+     *
+     * The org.apache.kafka.* stubs under src/test/java exist because the policy matches by class
+     * NAME, and the real classes are in connect-runtime, which this repo does not depend on.
+     */
+    private fun gracefulStop(param: Any?) = event(
+        Level.ERROR,
+        "org.apache.kafka.connect.runtime.Worker",
+        parameterized("Graceful stop of task {} failed.", param),
+    )
+
+    @Test
+    fun `keeps a ConnectorTaskId argument so the failing connector stays identifiable`() {
+        val id = ConnectorTaskId("falcon.datalake-conversations-conversations-attachments-v0", 0)
+        val out = assertNotNull(policy().rewrite(gracefulStop(id)))
+        assertEquals(
+            "Graceful stop of task falcon.datalake-conversations-conversations-attachments-v0-0 failed.",
+            out.message.formattedMessage,
+        )
+    }
+
+    @Test
+    fun `keeps a WorkerSinkTask argument`() {
+        val out = assertNotNull(policy().rewrite(gracefulStop(WorkerSinkTask("elk.roles-service-employees-v1-0"))))
+        assertContains(out.message.formattedMessage, "WorkerSinkTask{id=elk.roles-service-employees-v1-0}")
+    }
+
+    @Test
+    fun `does not allowlist other classes in the connect runtime package`() {
+        // Same package as WorkerSinkTask, but its toString carries credentials. The allowlist must
+        // be exact class names, never a package prefix.
+        val out = assertNotNull(policy().rewrite(gracefulStop(ConnectorConfig())))
+        assertNoPii(out)
+        assertEquals("Graceful stop of task [REDACTED] failed.", out.message.formattedMessage)
+    }
+
+    @Test
+    fun `still redacts an unrecognised object argument`() {
+        val record = object {
+            override fun toString() = "Sarah jo.tan@example.com"
+        }
+        val out = assertNotNull(policy().rewrite(gracefulStop(record)))
+        assertNoPii(out)
+        assertEquals("Graceful stop of task [REDACTED] failed.", out.message.formattedMessage)
     }
 
     @Test
