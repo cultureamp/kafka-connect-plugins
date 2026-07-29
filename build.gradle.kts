@@ -18,7 +18,7 @@ plugins {
 }
 
 // Package version
-version = "0.13.2-snapshot"
+version = "0.13.0"
 
 repositories {
     // Use Maven Central for resolving dependencies.
@@ -111,6 +111,12 @@ val log4jRedactionJar by tasks.registering(Jar::class) {
 tasks.jar {
     exclude("com/cultureamp/kafka/connect/plugins/logging/**")
     exclude("META-INF/org/apache/logging/**")
+    // log4j-core's annotation processor jar also runs GraalVmProcessor, which writes
+    // META-INF/native-image/log4j-generated/<hash>/reflect-config.json. That is not under
+    // META-INF/org/apache/logging, so the exclude above misses it and it lands in the SMT jar -
+    // which is exactly the checksum churn this block exists to prevent. Useless to a JVM Connect
+    // worker, so it is excluded from both jars rather than moved to the other one.
+    exclude("META-INF/native-image/**")
 }
 
 tasks.named("assemble") {
