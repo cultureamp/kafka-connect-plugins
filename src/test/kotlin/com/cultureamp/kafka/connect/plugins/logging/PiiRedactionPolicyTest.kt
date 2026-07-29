@@ -40,7 +40,8 @@ class PiiRedactionPolicyTest {
         "Sarah", "resigning", "jo.tan", "example.com", "VALUES (", "142000", "emp-9931",
     )
 
-    private fun policy(untrustedLoggers: String? = "org.apache.kafka.connect.runtime.errors") =
+    /** Default argument mirrors the shipped default: no untrusted loggers, SQLException gate only. */
+    private fun policy(untrustedLoggers: String? = "") =
         PiiRedactionPolicy.createPolicy(untrustedLoggers)
 
     private fun event(
@@ -188,20 +189,80 @@ class PiiRedactionPolicyTest {
     }
 
     @Test
-    fun `redacts the LogReporter record dump, which has no exception at all`() {
-        // errors.log.include.messages builds the record into the message by concatenation. No
-        // throwable, so no type check can see it - hence the logger prefix.
+    fun `redacts a SQLException wrapped inside a suppressed exception`() {
+        // Detection used to check suppressed entries with a shallow instanceof while sanitize()
+        // recursed into them, so this shape was returned untouched with the INSERT intact. The two
+        // walks are now one, which is why they cannot disagree about this again.
+        val outer = RuntimeException("outer")
+        outer.addSuppressed(RuntimeException("wrapper", batchAbort()))
+        val input = event(Level.ERROR, "com.acme.X", SimpleMessage("boom"), outer)
+        val out = assertNotNull(policy().rewrite(input))
+        assertFalse(out === input, "a SQLException below a suppressed exception must be detected")
+        assertNoPii(out)
+    }
+
+    @Test
+    fun `redacts a SQLException suppressed on a suppressed exception`() {
+        val outer = RuntimeException("outer")
+        val mid = RuntimeException("mid").apply { addSuppressed(batchAbort()) }
+        outer.addSuppressed(mid)
+        val input = event(Level.ERROR, "com.acme.X", SimpleMessage("boom"), outer)
+        val out = assertNotNull(policy().rewrite(input))
+        assertFalse(out === input, "suppressed-of-suppressed must be walked too")
+        assertNoPii(out)
+    }
+
+    // ------------------------------------------------- untrustedLoggers, opt-in
+
+    @Test
+    fun `an opted-in logger has its message and its exception messages dropped`() {
+        // LogReporter.report calls log.error(message(context), context.error()) - verified from
+        // bytecode - and a converter failure is not a SQLException, but its message carries the
+        // record: JsonConverter wraps a Jackson error that quotes the offending bytes. Opting a
+        // logger in has to cover both halves or it covers nothing.
         val out = assertNotNull(
-            policy().rewrite(
+            policy(untrustedLoggers = "org.apache.kafka.connect.runtime.errors.LogReporter").rewrite(
                 event(
                     Level.ERROR,
                     "org.apache.kafka.connect.runtime.errors.LogReporter",
                     SimpleMessage("Error encountered, consumed record is {key='emp-9931', value='jo.tan@example.com'}"),
+                    org.apache.kafka.connect.errors.DataException(
+                        "Converting byte[] to Kafka Connect data failed: {key='emp-9931', value='jo.tan@example.com'}",
+                    ),
                 ),
             ),
         )
         assertNoPii(out)
         assertEquals("[REDACTED]", out.message.formattedMessage)
+        // Class name kept, so the failure is still diagnosable.
+        assertContains(assertNotNull(out.thrown).message!!, "DataException")
+    }
+
+    @Test
+    fun `the shipped default leaves the LogReporter record dump alone - accepted residual`() {
+        // untrustedLoggers ships empty, so this event is untouched. Deliberate: for a sink connector
+        // ProcessingContext.toString appends only topic/partition/offset for a consumed record, and
+        // 0 of 3,728 production events had a payload in a log message. A source connector with
+        // errors.log.include.messages=true is the case that would need the opt-in above.
+        val input = event(
+            Level.ERROR,
+            "org.apache.kafka.connect.runtime.errors.LogReporter",
+            SimpleMessage("Error encountered, consumed record is {key='emp-9931', value='jo.tan@example.com'}"),
+        )
+        assertSame(input, policy().rewrite(input))
+    }
+
+    @Test
+    fun `the shipped default leaves the DLQ reporter diagnosable`() {
+        // The package-wide prefix used to catch this: a static message plus a producer exception,
+        // neither carrying record data. Blanking it costs the reason the DLQ write failed.
+        val input = event(
+            Level.ERROR,
+            "org.apache.kafka.connect.runtime.errors.DeadLetterQueueReporter",
+            SimpleMessage("Could not produce message to dead letter queue. topic=connect-dlq-datalake"),
+            org.apache.kafka.common.errors.TopicAuthorizationException("Not authorized to access topics: [connect-dlq-datalake]"),
+        )
+        assertSame(input, policy().rewrite(input))
     }
 
     // ------------------------------------------------------- passes through
@@ -219,6 +280,21 @@ class PiiRedactionPolicyTest {
             org.apache.kafka.common.errors.InterruptException(InterruptedException()),
         )
         assertSame(input, policy().rewrite(input), "no SQLException in chain: must not be rewritten")
+    }
+
+    @Test
+    fun `passes a clean suppressed exception through untouched`() {
+        // Guards the other side of the suppressed recursion: walking into suppressed subtrees must
+        // not make every throwable with a suppressed entry fail closed.
+        val input = event(
+            Level.ERROR,
+            "com.acme.X",
+            SimpleMessage("boom"),
+            RuntimeException("outer", IllegalStateException("mid")).apply {
+                addSuppressed(RuntimeException("also clean", IllegalArgumentException("leaf")))
+            },
+        )
+        assertSame(input, policy().rewrite(input), "no SQLException anywhere: must not be rewritten")
     }
 
     @Test
@@ -360,11 +436,8 @@ class PiiRedactionPolicyTest {
      * identifier allowlist) was removed as unnecessary, along with three bugs that lived in it.
      *
      * The cost is this: a call site that concatenates record data into a log message is NOT
-     * covered, even when a SQLException is present. If that ever shows up in real logs, this test
-     * is the one to change - and the fix is a message-redaction branch on the untrusted path, not
-     * a return to per-argument scrubbing.
-     *
-     * LogReporter, the one known concatenating logger, is covered by untrustedLoggers instead.
+     * covered, even when a SQLException is present. If that ever shows up in real logs, name that
+     * logger in untrustedLoggers - which ships empty - rather than reviving per-argument scrubbing.
      */
     @Test
     fun `does not redact a log message even on a SQL chain - accepted residual`() {
@@ -404,18 +477,35 @@ class PiiRedactionPolicyTest {
             event(Level.ERROR, "org.apache.kafka.connect.runtime.errors.LogReporter", SimpleMessage("b")),
             event(Level.INFO, "com.acme.X", parameterized("c {}", 1)),
         ).forEach { policy().rewrite(it) }
+        // The opt-in path too, message and throwable together.
+        policy(untrustedLoggers = "com.acme").rewrite(
+            event(Level.ERROR, "com.acme.X", SimpleMessage("d"), poisonedOuter()),
+        )
         assertEquals(before, PiiRedactionPolicy.panics(), "panics() must stay flat; see its KDoc")
     }
 
     // ------------------------------------------------------------------ config
 
     @Test
-    fun `an empty untrusted logger list still redacts SQL chains`() {
-        val out = assertNotNull(
-            policy(untrustedLoggers = null).rewrite(
-                event(Level.ERROR, "com.acme.X", SimpleMessage("m"), batchAbort()),
-            ),
-        )
-        assertNoPii(out)
+    fun `a null or blank untrusted logger list still redacts SQL chains`() {
+        listOf(null, "", "   ", " , ").forEach { config ->
+            val out = assertNotNull(
+                policy(untrustedLoggers = config).rewrite(
+                    event(Level.ERROR, "com.acme.X", SimpleMessage("m"), batchAbort()),
+                ),
+            )
+            assertNoPii(out)
+        }
+    }
+
+    @Test
+    fun `untrusted logger prefixes are trimmed and matched by prefix`() {
+        val policy = policy(untrustedLoggers = " com.acme.Noisy , com.other.Loud ")
+        listOf("com.acme.Noisy", "com.acme.NoisyChild", "com.other.Loud").forEach { logger ->
+            val out = assertNotNull(policy.rewrite(event(Level.ERROR, logger, SimpleMessage("secret"), null)))
+            assertEquals("[REDACTED]", out.message.formattedMessage, "$logger should have matched")
+        }
+        val untouched = event(Level.ERROR, "com.acme.Quiet", SimpleMessage("secret"), null)
+        assertSame(untouched, policy.rewrite(untouched))
     }
 }

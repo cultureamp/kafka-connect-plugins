@@ -32,9 +32,11 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * <pre>
  *   chain contains a SQLException  -&gt; drop every exception message in the chain
- *   logger is in untrustedLoggers  -&gt; drop the log message
  *   otherwise                      -&gt; return the event untouched
  * </pre>
+ *
+ * As shipped that is the whole of it - log messages are never touched, whatever the logger. {@code
+ * untrustedLoggers} can opt a named logger into losing its message too, and defaults to empty.
  *
  * Exception class names and stack frames are always kept: a {@code StackTraceElement} is declaring
  * class, method, file and line, read from the class file constant pool, so it cannot carry runtime
@@ -75,14 +77,38 @@ import java.util.concurrent.atomic.AtomicLong;
  *       enabling DEBUG for exception detail, which used to produce unredacted output.
  * </ul>
  *
- * <p>{@code untrustedLoggers} exists for what a type check structurally cannot see: {@code
- * LogReporter} assembles the failed record into its log message by string concatenation, with no
- * exception involved. That is the {@code errors.log.include.messages} channel. It has never fired
- * in production, so this is precautionary.
+ * <h2>untrustedLoggers, and why it ships empty</h2>
  *
- * <p>Accepted residual: a call site that concatenates row data into a log message, or a non-JDBC
- * plugin exception carrying row data, would not be caught. Neither appears in 3,728 production
- * events, but the S3 and Lambda connectors were never audited.
+ * <p>{@code untrustedLoggers} is an opt-in escape hatch for what a type check structurally cannot
+ * see: a logger that concatenates record data into its message with no exception involved. Naming a
+ * logger prefix there drops that logger's log message <em>and</em> its exception messages, on the
+ * grounds that a call site known to handle record data should not be filtered by exception type.
+ *
+ * <p>It defaults to empty, so out of the box nothing is matched and the {@code SQLException} gate is
+ * the only thing that redacts. The known candidate was {@code LogReporter}, the {@code
+ * errors.log.include.messages} channel, and it was not worth enabling by default:
+ *
+ * <ul>
+ *   <li>It never fired in production, and for a <em>sink</em> connector it never could:
+ *       {@code ProcessingContext.toString} appends the full record only on the source-record branch.
+ *       For a consumed record it appends {@code topic/partition/offset/timestamp} and nothing else -
+ *       no key, no value. That is consistent with 0 of 3,728 events having a payload in the message.
+ *   <li>The payload risk at that call site is the throwable, not the message: {@code
+ *       LogReporter.report} passes {@code context.error()} alongside it, and for the JDBC sink that
+ *       error is the {@code SQLException} chain - already covered by the gate.
+ *   <li>The obvious prefix to configure, the {@code org.apache.kafka.connect.runtime.errors} package,
+ *       catches four unrelated call sites in it. {@code DeadLetterQueueReporter} and {@code
+ *       WorkerErrantRecordReporter} log static strings plus a Kafka producer exception; blanking
+ *       those loses real diagnostics ("which topic could I not write the DLQ record to") to protect
+ *       nothing. Configure the single class, not the package, if you ever need this.
+ * </ul>
+ *
+ * <p>Accepted residual, therefore: a call site that concatenates row data into a log message is not
+ * caught, and neither is a non-JDBC plugin exception carrying row data. Specifically, a source
+ * connector with {@code errors.log.include.messages=true} would log the full record via {@code
+ * LogReporter}, and a converter failure carries the record in a Jackson {@code JsonParseException}
+ * message. Neither appears in 3,728 production events, all of which are sink connectors, but the S3
+ * and Lambda connectors were never audited. If either shows up, name that logger here.
  *
  * <h2>Deployment</h2>
  *
@@ -92,14 +118,23 @@ import java.util.concurrent.atomic.AtomicLong;
  * is on neither, so a Kotlin policy dies with {@code NoClassDefFoundError} - after which log4j2
  * builds the Rewrite appender with <em>no policy</em> and logs everything unredacted.
  *
+ * <p>No attributes are required. In YAML the empty element has to be an explicit empty mapping - a
+ * bare {@code PiiRedactionPolicy:} parses as a null value, not as a node:
+ *
  * <pre>
  *   Rewrite:
  *     name: RedactingAppender
  *     AppenderRef:
  *       ref: JsonConsole
+ *     PiiRedactionPolicy: {}
+ *
+ *   # only if a log message ever turns out to leak; a single class, not a package:
  *     PiiRedactionPolicy:
- *       untrustedLoggers: "org.apache.kafka.connect.runtime.errors"
+ *       untrustedLoggers: "org.apache.kafka.connect.runtime.errors.LogReporter"
  * </pre>
+ *
+ * <p>Check the worker's status output once after changing this. A policy log4j2 cannot resolve does
+ * not fail the appender - it builds Rewrite with <em>no policy</em> and logs everything unredacted.
  *
  * @see #panics() the health signal to alarm on
  */
@@ -112,7 +147,11 @@ public final class PiiRedactionPolicy implements RewritePolicy {
 
     private static final String REDACTED = "[REDACTED]";
 
-    /** A cause chain may be arbitrarily deep, or cyclic; cap the walk. */
+    /**
+     * A cause chain may be arbitrarily deep, or cyclic; cap the walk. Hitting the cap fails closed:
+     * the chain is redacted and truncated here, so a pathological chain costs detail, not safety.
+     * Measured boundary: 16 nested throwables pass through untouched, 22 trip the cap.
+     */
     private static final int MAX_CAUSE_DEPTH = 20;
 
     private static final AtomicLong PANIC_COUNT = new AtomicLong();
@@ -123,10 +162,14 @@ public final class PiiRedactionPolicy implements RewritePolicy {
         this.untrustedLoggers = untrustedLoggers;
     }
 
+    /**
+     * @param untrustedLoggers comma-separated logger-name prefixes whose log messages and exception
+     *     messages are both dropped unconditionally. Empty by default: see the class docs for why,
+     *     and prefer naming a single class over a package if you set it.
+     */
     @PluginFactory
     public static PiiRedactionPolicy createPolicy(
-            @PluginAttribute(value = "untrustedLoggers",
-                    defaultString = "org.apache.kafka.connect.runtime.errors") final String untrustedLoggers) {
+            @PluginAttribute(value = "untrustedLoggers", defaultString = "") final String untrustedLoggers) {
         return new PiiRedactionPolicy(splitCsv(untrustedLoggers));
     }
 
@@ -148,9 +191,23 @@ public final class PiiRedactionPolicy implements RewritePolicy {
             return null;
         }
         try {
-            final boolean dropLogMessage = isUntrustedLogger(event.getLoggerName());
+            // Short-circuited on the empty default, so the shipped configuration does not even look
+            // at the logger name.
+            final boolean dropLogMessage =
+                    !untrustedLoggers.isEmpty() && isUntrustedLogger(event.getLoggerName());
             final Throwable thrown = event.getThrown();
-            final boolean dropExceptionMessages = chainHasSqlException(thrown);
+
+            // ONE walk over the exception graph: it builds the sanitised copy and decides whether
+            // the chain needs redacting at all. Skipped when there is no throwable, which is almost
+            // every event - a worker logs on the order of 15k INFO events per 15 minutes and next
+            // to none of them carry one - so the common path stays allocation-free.
+            Throwable safe = null;
+            boolean dropExceptionMessages = false;
+            if (thrown != null) {
+                final ChainScan scan = new ChainScan();
+                safe = sanitize(thrown, scan, identitySet(), 0);
+                dropExceptionMessages = scan.mustRedact;
+            }
 
             if (!dropLogMessage && !dropExceptionMessages) {
                 return event;
@@ -160,9 +217,9 @@ public final class PiiRedactionPolicy implements RewritePolicy {
             if (dropLogMessage) {
                 rewritten.setMessage(new SimpleMessage(REDACTED));
             }
-            if (dropExceptionMessages) {
-                rewritten.setThrown(sanitize(thrown, identitySet(), 0));
-            }
+            // Unconditional: an untrusted logger drops exception messages too, and if the chain is
+            // clean and the logger trusted we returned the event untouched above.
+            rewritten.setThrown(safe);
             return rewritten.build();
             // No setThrownProxy: it is a no-op stub in log4j-core 2.25 and the copy-constructor
             // does not carry the source event's proxy, so getThrownProxy() is rebuilt from the
@@ -186,61 +243,58 @@ public final class PiiRedactionPolicy implements RewritePolicy {
     }
 
     /**
-     * True if any throwable in the cause or suppressed chain is a {@link SQLException}.
+     * Rebuilds the cause chain preserving class names and stack frames, dropping every message, and
+     * records in {@code scan} whether the chain needs redacting at all.
      *
-     * <p>Fails closed: a hostile accessor, a cycle, or a chain deeper than
-     * {@link #MAX_CAUSE_DEPTH} all return true rather than assume the chain is clean.
-     */
-    private static boolean chainHasSqlException(final Throwable thrown) {
-        final Set<Throwable> seen = identitySet();
-        Throwable current = thrown;
-        int depth = 0;
-        while (current != null) {
-            if (depth++ > MAX_CAUSE_DEPTH || !seen.add(current)) {
-                return true;
-            }
-            if (current instanceof SQLException) {
-                return true;
-            }
-            try {
-                for (final Throwable suppressed : current.getSuppressed()) {
-                    if (suppressed instanceof SQLException) {
-                        return true;
-                    }
-                }
-                current = current.getCause();
-            } catch (final Throwable hostileAccessor) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Rebuilds the cause chain preserving class names and stack frames, dropping every message.
+     * <p>Detection is fused into this walk deliberately. It used to be a separate
+     * {@code chainHasSqlException} pass, and the two drifted: detection checked suppressed entries
+     * with a shallow {@code instanceof} while this method recursed into them, so a
+     * {@link SQLException} nested <em>below</em> a suppressed exception was sanitised correctly but
+     * never triggered redaction and the event went out with the payload intact. The JDK offers no
+     * traversal of the cause-and-suppressed graph ({@code Throwable} exposes only the two
+     * accessors), and the third-party helpers that look like it - {@code
+     * ExceptionUtils.throwableOfType}, {@code Throwables.getCausalChain} - walk the cause chain only
+     * and trust the accessors. So the walk has to be hand-written; making it the only walk is what
+     * keeps detection and sanitisation from disagreeing again.
      *
-     * <p>Each accessor is guarded independently, because {@code getCause}, {@code getMessage} and
-     * {@code getStackTrace} are all overridable and a badly-behaved exception class from any plugin
-     * can throw from any of them. Without per-field guards one such accessor fails the whole event
-     * and costs the entire class chain. {@code getClass} and {@code getSuppressed} are final in
-     * {@code Throwable} and cannot misbehave.
+     * <p>Each accessor is guarded independently, because {@code getCause} and {@code getStackTrace}
+     * are both overridable and a badly-behaved exception class from any plugin can throw from any of
+     * them. Without per-field guards one such accessor fails the whole event and costs the entire
+     * class chain. {@code getClass} and {@code getSuppressed} are final in {@code Throwable} and
+     * cannot misbehave. Anything that stops the walk seeing a subtree sets
+     * {@link ChainScan#mustRedact}: a chain that cannot be proved clean is treated as dirty.
+     *
+     * <p>{@code SQLException.getNextException()} is not walked, and does not need to be. It is not
+     * reachable from the sanitised copy - {@link RedactedThrowable} carries a class name and a cause,
+     * nothing else - and {@link Throwable#printStackTrace} never renders it, so a next-exception
+     * message cannot reach an appender. {@code JdbcSinkTask} is the thing that walks it, which is
+     * how the payload ends up concatenated into a synthetic {@code SQLException} message instead.
      *
      * <p>Does not reflectively reconstruct the original type, which is what the Confluent redactor
      * does: that runs arbitrary driver constructors inside the logging path, and many exception
      * classes have no {@code (String)} constructor.
      */
-    private Throwable sanitize(final Throwable t, final Set<Throwable> seen, final int depth) {
-        if (t == null || depth > MAX_CAUSE_DEPTH || !seen.add(t)) {
+    private Throwable sanitize(
+            final Throwable t, final ChainScan scan, final Set<Throwable> seen, final int depth) {
+        if (t == null) {
             return null;
+        }
+        if (depth > MAX_CAUSE_DEPTH || !seen.add(t)) {
+            // Too deep, cyclic, or reached twice: nothing below here can be proved clean.
+            scan.mustRedact = true;
+            return null;
+        }
+        if (t instanceof SQLException) {
+            scan.mustRedact = true;
         }
         // The cause must be passed to the constructor, never via initCause(): Throwable's 4-arg
         // constructor *sets* the cause field even when given null, after which initCause() throws
         // IllegalStateException("Can't overwrite cause").
         Throwable cause = null;
         try {
-            cause = sanitize(t.getCause(), seen, depth + 1);
+            cause = sanitize(t.getCause(), scan, seen, depth + 1);
         } catch (final Throwable hostileGetCause) {
-            cause = null;
+            scan.mustRedact = true;
         }
 
         final Throwable safe = new RedactedThrowable(t.getClass().getName() + ": " + REDACTED, cause);
@@ -248,17 +302,19 @@ public final class PiiRedactionPolicy implements RewritePolicy {
         try {
             safe.setStackTrace(t.getStackTrace());
         } catch (final Throwable hostileGetStackTrace) {
-            // Leave the frames RedactedThrowable was constructed with.
+            // Leave the frames RedactedThrowable was constructed with. Frames cannot carry runtime
+            // data, so this costs detail only - it says nothing about what is in the chain.
         }
 
         for (final Throwable suppressed : t.getSuppressed()) {
             try {
-                final Throwable s = sanitize(suppressed, seen, depth + 1);
+                final Throwable s = sanitize(suppressed, scan, seen, depth + 1);
                 if (s != null) {
                     safe.addSuppressed(s);
                 }
             } catch (final Throwable hostileSuppressed) {
-                // Drop this suppressed entry only.
+                // Drop this suppressed entry - and we did not get to see inside it.
+                scan.mustRedact = true;
             }
         }
         return safe;
@@ -312,6 +368,14 @@ public final class PiiRedactionPolicy implements RewritePolicy {
     @Override
     public String toString() {
         return "PiiRedactionPolicy{untrustedLoggers=" + untrustedLoggers + '}';
+    }
+
+    /**
+     * Out-parameter for {@link #sanitize}: {@code true} once the walk has seen a {@link SQLException},
+     * or has hit something that stops it proving there is not one.
+     */
+    private static final class ChainScan {
+        private boolean mustRedact;
     }
 
     /**
