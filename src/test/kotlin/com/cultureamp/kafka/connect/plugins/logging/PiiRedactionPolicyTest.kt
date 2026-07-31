@@ -239,6 +239,27 @@ class PiiRedactionPolicyTest {
     }
 
     @Test
+    fun `an opted-in logger with a SQLException redacts both halves`() {
+        // Both reasons to redact fire at once. The message drop and the throwable sanitisation are
+        // decided separately, so this pins that neither one shadows the other - a refactor that made
+        // them exclusive would otherwise leave PII in whichever half it dropped.
+        val out = assertNotNull(
+            policy(untrustedLoggers = "org.apache.kafka.connect.runtime.errors.LogReporter").rewrite(
+                event(
+                    Level.ERROR,
+                    "org.apache.kafka.connect.runtime.errors.LogReporter",
+                    SimpleMessage("Error encountered, consumed record is {key='emp-9931', value='jo.tan@example.com'}"),
+                    batchAbort(),
+                ),
+            ),
+        )
+        assertNoPii(out)
+        assertEquals("[REDACTED]", out.message.formattedMessage)
+        assertContains(assertNotNull(out.thrown).message!!, "java.sql.BatchUpdateException")
+        assertContains(out.thrown.message!!, "[REDACTED]")
+    }
+
+    @Test
     fun `the shipped default leaves the LogReporter record dump alone - accepted residual`() {
         // untrustedLoggers ships empty, so this event is untouched. Deliberate: for a sink connector
         // ProcessingContext.toString appends only topic/partition/offset for a consumed record, and
@@ -482,6 +503,73 @@ class PiiRedactionPolicyTest {
             event(Level.ERROR, "com.acme.X", SimpleMessage("d"), poisonedOuter()),
         )
         assertEquals(before, PiiRedactionPolicy.panics(), "panics() must stay flat; see its KDoc")
+    }
+
+    // ------------------------------------------------- the fail-closed fallback
+
+    /**
+     * A LogEvent whose getThrown() throws for the first [failures] calls.
+     *
+     * getThrown() is the first fallible call inside rewrite()'s try, which makes it the way to reach
+     * panicRedact. getLoggerName() cannot be used: untrustedLoggers ships empty, and the
+     * isEmpty() short-circuit means the logger name is never read on the default config.
+     *
+     * failures = 1 lets Log4jLogEvent.Builder's copy-constructor succeed, exercising panicRedact's
+     * normal path. A larger count breaks the copy-constructor too, exercising the last-resort
+     * newBuilder() path underneath it.
+     */
+    private class ThrowsOnThrown(
+        private val delegate: LogEvent,
+        private val failures: Int,
+    ) : LogEvent by delegate {
+        private var calls = 0
+
+        override fun getThrown(): Throwable? {
+            if (calls++ < failures) throw RuntimeException("hostile getThrown carrying jo.tan@example.com")
+            return delegate.thrown
+        }
+    }
+
+    @Test
+    fun `a bug inside the policy falls back to full redaction and counts a panic`() {
+        val before = PiiRedactionPolicy.panics()
+        val out = assertNotNull(
+            policy().rewrite(
+                ThrowsOnThrown(
+                    event(Level.ERROR, "com.acme.X", SimpleMessage("Failed on jo.tan@example.com"), batchAbort()),
+                    failures = 1,
+                ),
+            ),
+        )
+        assertEquals(before + 1, PiiRedactionPolicy.panics(), "the fallback must be counted")
+        // Fails CLOSED: message and throwable both go, not just the one that broke.
+        assertEquals("[REDACTED]", out.message.formattedMessage)
+        assertNull(out.thrown)
+        assertNoPii(out)
+        // Routing metadata survives, so the event is still attributable.
+        assertEquals("com.acme.X", out.loggerName)
+        assertEquals(Level.ERROR, out.level)
+    }
+
+    @Test
+    fun `a bug that also breaks the event copy still returns a safe event`() {
+        // Second layer: panicRedact's own Builder(event) call re-reads getThrown(), so this breaks
+        // the fallback itself and must still not propagate or return null.
+        val before = PiiRedactionPolicy.panics()
+        val out = assertNotNull(
+            policy().rewrite(
+                ThrowsOnThrown(
+                    event(Level.ERROR, "com.acme.X", SimpleMessage("Failed on jo.tan@example.com"), batchAbort()),
+                    failures = Int.MAX_VALUE,
+                ),
+            ),
+        )
+        assertEquals(before + 1, PiiRedactionPolicy.panics())
+        assertEquals("[REDACTED]", out.message.formattedMessage)
+        assertNull(out.thrown)
+        assertNoPii(out)
+        // Nothing of the original event survives this path, so it is attributed to the policy.
+        assertEquals(PiiRedactionPolicy::class.java.name, out.loggerName)
     }
 
     // ------------------------------------------------------------------ config
