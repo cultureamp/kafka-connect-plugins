@@ -1,4 +1,4 @@
-val kafkaVersion = "3.6.2"
+val kafkaVersion = "4.3.1"
 
 // Must track the log4j version in the cp-kafka-connect image (docker/connect/Dockerfile in
 // kafka-ops). log4j2 plugins are loaded from a binary descriptor, so a major/minor mismatch
