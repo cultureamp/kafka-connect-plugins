@@ -3,7 +3,7 @@ val kafkaVersion = "3.6.2"
 // Must track the log4j version in the cp-kafka-connect image (docker/connect/Dockerfile in
 // kafka-ops). log4j2 plugins are loaded from a binary descriptor, so a major/minor mismatch
 // here can mean the plugin is silently not found at runtime.
-val log4jVersion = "2.25.3"
+val log4jVersion = "2.26.1"
 
 plugins {
     // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
