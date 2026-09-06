@@ -25,6 +25,19 @@ repositories {
     mavenCentral()
 }
 
+// mongo-kafka-connect 1.16.0 brings kotlin-stdlib/kotlin-reflect 2.1.x as transitive deps.
+// The Kotlin JVM plugin is pinned to 1.9.25 (kotlinter 3.16.0 requires Kotlin 1.x), so we
+// must force all Kotlin artifacts back to 1.9.25 to avoid a metadata-version mismatch at
+// compile time ("binary version 2.1.0, expected 1.9.0").
+configurations.all {
+    resolutionStrategy.force(
+        "org.jetbrains.kotlin:kotlin-stdlib:1.9.25",
+        "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.25",
+        "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.25",
+        "org.jetbrains.kotlin:kotlin-reflect:1.9.25",
+    )
+}
+
 dependencies {
     // Align versions of all Kotlin components
     implementation(platform("org.jetbrains.kotlin:kotlin-bom"))
