@@ -89,7 +89,7 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
             record.key(),
             schema,
             value,
-            record.timestamp()
+            record.timestamp(),
         )
     }
 
@@ -104,12 +104,14 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
         // Note that we don't use the schema translation cache here. It might save us a bit of effort, but we really
         // only care about caching top-level schema translations.
         val builder = SchemaUtil.copySchemaBasics(orig)
-        if (optional)
+        if (optional) {
             builder.optional()
-        if (defaultFromParent != null)
+        }
+        if (defaultFromParent != null) {
             builder.defaultValue(defaultFromParent)
-        else if (orig.defaultValue() != null)
+        } else if (orig.defaultValue() != null) {
             builder.defaultValue(orig.defaultValue())
+        }
         return builder.build()
     }
 
@@ -151,10 +153,12 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
                 Schema.Type.FLOAT64,
                 Schema.Type.BOOLEAN,
                 Schema.Type.STRING,
-                Schema.Type.BYTES -> newSchema.field(fieldName, convertFieldSchema(field.schema(), optional, fieldDefaultValue))
+                Schema.Type.BYTES,
+                -> newSchema.field(fieldName, convertFieldSchema(field.schema(), optional, fieldDefaultValue))
                 // ARRAY and MAP keep their original types, no conversion to string
                 Schema.Type.ARRAY,
-                Schema.Type.MAP -> newSchema.field(fieldName, convertComplexFieldSchema(field.schema(), optional))
+                Schema.Type.MAP,
+                -> newSchema.field(fieldName, convertComplexFieldSchema(field.schema(), optional))
                 Schema.Type.STRUCT -> buildUpdatedSchema(field.schema(), fieldName, newSchema, optional)
             }
         }
@@ -187,7 +191,8 @@ class ClickHouseFlattenTransformer<R : ConnectRecord<R>> : Transformation<R> {
                 Schema.Type.STRING,
                 Schema.Type.BYTES,
                 Schema.Type.ARRAY,
-                Schema.Type.MAP -> newRecord.put(fieldName, value)
+                Schema.Type.MAP,
+                -> newRecord.put(fieldName, value)
                 Schema.Type.STRUCT -> buildWithSchema(record.getStruct(field.name()), fieldName, newRecord)
             }
         }

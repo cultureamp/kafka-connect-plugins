@@ -56,7 +56,6 @@ class ClickHouseFlattenTransformerTest {
 
     @Test
     fun `can transform ECST Employee data with null body`() {
-
         val avroRecord = payload("com/cultureamp/employee-data.employees-v2-clickhouse.json")
         val sinkRecord = SinkRecord(
             "employee data ecst test",
@@ -85,7 +84,7 @@ class ClickHouseFlattenTransformerTest {
             Struct(arrayStructSchema).apply {
                 put("demographic_id", "{\"string\": \"460f6b2d-03c5-46cf-ba55-aa14477a12dc\"}")
                 put("demographic_value_id", "{\"string\": \"ecc0db2e-486e-4f4a-a54a-db21673e1a2b\"}")
-            }
+            },
         )
 
         // Expected result: no body_* fields except those with defaults from schema, metadata_service uses default, is_deleted=1
@@ -114,7 +113,6 @@ class ClickHouseFlattenTransformerTest {
 
     @Test
     fun `can transform ECST Employee data that has key as field`() {
-
         val avroRecord = payload("com/cultureamp/employee-data.employees-v1-clickhouse.json")
         val sinkRecord = SinkRecord(
             "employee data ecst test",
@@ -144,7 +142,7 @@ class ClickHouseFlattenTransformerTest {
             Struct(bodyArrayStructSchema).apply {
                 put("demographic_id", "{\"string\": \"460f6b2d-03c5-46cf-ba55-aa14477a12dc\"}")
                 put("demographic_value_id", "{\"string\": \"ecc0db2e-486e-4f4a-a54a-db21673e1a2b\"}")
-            }
+            },
         )
 
         val testArrayStructSchema = expectedSchema.field("test_array_of_structs").schema().valueSchema()
@@ -156,7 +154,7 @@ class ClickHouseFlattenTransformerTest {
             Struct(testArrayStructSchema).apply {
                 put("demographic_id", "{\"string\": \"460f6b2d-03c5-46cf-ba55-aa14477a12dc\"}")
                 put("demographic_value_id", "{\"string\": \"ecc0db2e-486e-4f4a-a54a-db21673e1a2b\"}")
-            }
+            },
         )
 
         // Create expected Struct using hard-coded schema as container for our manually-defined expected values
@@ -202,7 +200,6 @@ class ClickHouseFlattenTransformerTest {
 
     @Test
     fun `can transform ECST Employee data with tombstone message and non-null key`() {
-
         val avroRecord = payload("com/cultureamp/employee-data.employees-v1-clickhouse.json")
         val sinkRecord = SinkRecord(
             "employee data ecst test",
@@ -222,7 +219,6 @@ class ClickHouseFlattenTransformerTest {
 
     @Test
     fun `can transform ECST Employee data with tombstone message and non-null key and skipTombstones disabled`() {
-
         val avroRecord = payload("com/cultureamp/employee-data.employees-v1-clickhouse.json")
         val sinkRecord = SinkRecord(
             "employee data ecst test",
@@ -346,7 +342,7 @@ class ClickHouseFlattenTransformerTest {
         ClassHelper.createInstance(
             MongoSourceConfig.OUTPUT_JSON_FORMATTER_CONFIG,
             "com.mongodb.kafka.connect.source.json.formatter.DefaultJson",
-            JsonWriterSettingsProvider::class.java
+            JsonWriterSettingsProvider::class.java,
         ).jsonWriterSettings
 
     /**
@@ -360,28 +356,34 @@ class ClickHouseFlattenTransformerTest {
 
         // Compare basic schema properties
         assertEquals(
-            expectedSchema.type(), actualSchema.type(),
-            "Schema type mismatch at $path: expected ${expectedSchema.type()}, got ${actualSchema.type()}"
+            expectedSchema.type(),
+            actualSchema.type(),
+            "Schema type mismatch at $path: expected ${expectedSchema.type()}, got ${actualSchema.type()}",
         )
         assertEquals(
-            expectedSchema.isOptional, actualSchema.isOptional,
-            "Optional setting mismatch at $path"
+            expectedSchema.isOptional,
+            actualSchema.isOptional,
+            "Optional setting mismatch at $path",
         )
         assertEquals(
-            expectedSchema.defaultValue(), actualSchema.defaultValue(),
-            "Default value mismatch at $path"
+            expectedSchema.defaultValue(),
+            actualSchema.defaultValue(),
+            "Default value mismatch at $path",
         )
         assertEquals(
-            expectedSchema.name(), actualSchema.name(),
-            "Name mismatch at $path"
+            expectedSchema.name(),
+            actualSchema.name(),
+            "Name mismatch at $path",
         )
         assertEquals(
-            expectedSchema.doc(), actualSchema.doc(),
-            "Doc mismatch at $path"
+            expectedSchema.doc(),
+            actualSchema.doc(),
+            "Doc mismatch at $path",
         )
         assertEquals(
-            expectedSchema.version(), actualSchema.version(),
-            "Version mismatch at $path"
+            expectedSchema.version(),
+            actualSchema.version(),
+            "Version mismatch at $path",
         )
 
         // Type-specific deep comparisons
@@ -404,8 +406,9 @@ class ClickHouseFlattenTransformerTest {
         val actualFields = actualSchema.fields()
 
         assertEquals(
-            expectedFields.size, actualFields.size,
-            "Struct field count mismatch at $path: expected ${expectedFields.size}, got ${actualFields.size}"
+            expectedFields.size,
+            actualFields.size,
+            "Struct field count mismatch at $path: expected ${expectedFields.size}, got ${actualFields.size}",
         )
 
         for (expectedField in expectedFields) {
@@ -414,13 +417,14 @@ class ClickHouseFlattenTransformerTest {
 
             // Compare field names and run recursive schema comparison
             assertEquals(
-                expectedField.name(), actualField.name(),
-                "Field name mismatch at $path"
+                expectedField.name(),
+                actualField.name(),
+                "Field name mismatch at $path",
             )
             compareSchemas(
                 expectedField.schema(),
                 actualField.schema(),
-                "$path.${expectedField.name()}"
+                "$path.${expectedField.name()}",
             )
         }
     }
@@ -430,7 +434,7 @@ class ClickHouseFlattenTransformerTest {
         compareSchemas(
             expectedSchema.valueSchema(),
             actualSchema.valueSchema(),
-            "$path[]"
+            "$path[]",
         )
     }
 
@@ -439,12 +443,12 @@ class ClickHouseFlattenTransformerTest {
         compareSchemas(
             expectedSchema.keySchema(),
             actualSchema.keySchema(),
-            "$path[key]"
+            "$path[key]",
         )
         compareSchemas(
             expectedSchema.valueSchema(),
             actualSchema.valueSchema(),
-            "$path[value]"
+            "$path[value]",
         )
     }
 
@@ -464,13 +468,15 @@ class ClickHouseFlattenTransformerTest {
                     if (expectedItem is Struct && actualItem is Struct) {
                         // Compare Struct content field by field
                         assertEquals(
-                            expectedItem.schema().fields().size, actualItem.schema().fields().size,
-                            "Struct field count mismatch in array ${expectedField.name()}[$i]"
+                            expectedItem.schema().fields().size,
+                            actualItem.schema().fields().size,
+                            "Struct field count mismatch in array ${expectedField.name()}[$i]",
                         )
                         for (structField in expectedItem.schema().fields()) {
                             assertEquals(
-                                expectedItem.get(structField.name()), actualItem.get(structField.name()),
-                                "Struct field ${structField.name()} mismatch in array ${expectedField.name()}[$i]"
+                                expectedItem.get(structField.name()),
+                                actualItem.get(structField.name()),
+                                "Struct field ${structField.name()} mismatch in array ${expectedField.name()}[$i]",
                             )
                         }
                     } else {

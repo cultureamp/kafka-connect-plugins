@@ -36,7 +36,7 @@ class JsonToHexTransformerTest {
             jsonString,
             0L,
             System.currentTimeMillis(),
-            TimestampType.CREATE_TIME
+            TimestampType.CREATE_TIME,
         )
 
         val result = transformer.apply(record)
@@ -75,7 +75,7 @@ class JsonToHexTransformerTest {
             nestedJson,
             0L,
             System.currentTimeMillis(),
-            TimestampType.CREATE_TIME
+            TimestampType.CREATE_TIME,
         )
 
         val result = transformer.apply(record)
@@ -110,7 +110,7 @@ class JsonToHexTransformerTest {
             emptyJson,
             0L,
             System.currentTimeMillis(),
-            TimestampType.CREATE_TIME
+            TimestampType.CREATE_TIME,
         )
 
         val result = transformer.apply(record)
@@ -134,7 +134,7 @@ class JsonToHexTransformerTest {
             jsonArray,
             0L,
             System.currentTimeMillis(),
-            TimestampType.CREATE_TIME
+            TimestampType.CREATE_TIME,
         )
 
         val result = transformer.apply(record)
@@ -170,7 +170,7 @@ class JsonToHexTransformerTest {
             largeData,
             0L,
             System.currentTimeMillis(),
-            TimestampType.CREATE_TIME
+            TimestampType.CREATE_TIME,
         )
 
         val result = transformer.apply(record)
@@ -200,7 +200,7 @@ class JsonToHexTransformerTest {
             jsonString,
             0L,
             System.currentTimeMillis(),
-            TimestampType.CREATE_TIME
+            TimestampType.CREATE_TIME,
         )
 
         val result = customTransformer.apply(record)
@@ -226,7 +226,7 @@ class JsonToHexTransformerTest {
             jsonWithSpecialChars,
             0L,
             System.currentTimeMillis(),
-            TimestampType.CREATE_TIME
+            TimestampType.CREATE_TIME,
         )
 
         val result = transformer.apply(record)
