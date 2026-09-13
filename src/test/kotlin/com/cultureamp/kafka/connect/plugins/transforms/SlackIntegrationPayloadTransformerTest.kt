@@ -33,13 +33,19 @@ class SlackIntegrationPayloadTransformerTest {
                 null,
                 "test",
                 valueAndSchema.schema(),
-                valueAndSchema.value()
+                valueAndSchema.value(),
             )
         )
 
         val expectedValue = struct(
-            accountId, accessToken, teamId, teamName, scope,
-            enterpriseId, isDeleted = false, status = "active"
+            accountId,
+            accessToken,
+            teamId,
+            teamName,
+            scope,
+            enterpriseId,
+            isDeleted = false,
+            status = "active",
         )
 
         assertEquals(expectedValue, transformedRecord.value())
@@ -56,13 +62,19 @@ class SlackIntegrationPayloadTransformerTest {
                 null,
                 "test",
                 valueAndSchema.schema(),
-                valueAndSchema.value()
+                valueAndSchema.value(),
             )
         )
 
         val expectedValue = struct(
-            accountId, accessToken, teamId, teamName, scope,
-            enterpriseId, isDeleted = false, status = "active"
+            accountId,
+            accessToken,
+            teamId,
+            teamName,
+            scope,
+            enterpriseId,
+            isDeleted = false,
+            status = "active",
         )
 
         assertEquals(expectedValue, transformedRecord.value())
@@ -79,13 +91,19 @@ class SlackIntegrationPayloadTransformerTest {
                 null,
                 "test",
                 valueAndSchema.schema(),
-                valueAndSchema.value()
+                valueAndSchema.value(),
             )
         )
 
         val expectedValue = struct(
-            accountId, accessToken, teamId, teamName, scope,
-            enterpriseId = null, isDeleted = true, status = "inactive"
+            accountId,
+            accessToken,
+            teamId,
+            teamName,
+            scope,
+            enterpriseId = null,
+            isDeleted = true,
+            status = "inactive",
         )
 
         assertEquals(expectedValue, transformedRecord.value())
@@ -102,13 +120,19 @@ class SlackIntegrationPayloadTransformerTest {
                 null,
                 "test",
                 valueAndSchema.schema(),
-                valueAndSchema.value()
+                valueAndSchema.value(),
             )
         )
 
         val expectedValue = struct(
-            accountId, accessToken, teamId, teamName, scope,
-            enterpriseId = null, isDeleted = true, status = "inactive"
+            accountId,
+            accessToken,
+            teamId,
+            teamName,
+            scope,
+            enterpriseId = null,
+            isDeleted = true,
+            status = "inactive",
         )
 
         assertEquals(expectedValue, transformedRecord.value())
@@ -125,13 +149,19 @@ class SlackIntegrationPayloadTransformerTest {
                 null,
                 "test",
                 valueAndSchema.schema(),
-                valueAndSchema.value()
+                valueAndSchema.value(),
             )
         )
 
         val expectedValue = struct(
-            accountId, accessToken, teamId, teamName, scope,
-            enterpriseId, isDeleted = false, status = "active"
+            accountId,
+            accessToken,
+            teamId,
+            teamName,
+            scope,
+            enterpriseId,
+            isDeleted = false,
+            status = "active",
         )
 
         assertEquals(expectedValue, transformedRecord.value())
@@ -148,13 +178,19 @@ class SlackIntegrationPayloadTransformerTest {
                 null,
                 "test",
                 valueAndSchema.schema(),
-                valueAndSchema.value()
+                valueAndSchema.value(),
             )
         )
 
         val expectedValue = struct(
-            accountId, accessToken, teamId, teamName, scope,
-            enterpriseId, isDeleted = false, status = "active"
+            accountId,
+            accessToken,
+            teamId,
+            teamName,
+            scope,
+            enterpriseId,
+            isDeleted = false,
+            status = "active",
         )
 
         assertEquals(expectedValue, transformedRecord.value())
@@ -171,13 +207,19 @@ class SlackIntegrationPayloadTransformerTest {
                 null,
                 "test",
                 valueAndSchema.schema(),
-                valueAndSchema.value()
+                valueAndSchema.value(),
             )
         )
 
         val expectedValue = struct(
-            accountId, accessToken, teamId, teamName, scope,
-            enterpriseId = null, isDeleted = true, status = "inactive"
+            accountId,
+            accessToken,
+            teamId,
+            teamName,
+            scope,
+            enterpriseId = null,
+            isDeleted = true,
+            status = "inactive",
         )
 
         assertEquals(expectedValue, transformedRecord.value())
@@ -194,13 +236,19 @@ class SlackIntegrationPayloadTransformerTest {
                 null,
                 "test",
                 valueAndSchema.schema(),
-                valueAndSchema.value()
+                valueAndSchema.value(),
             )
         )
 
         val expectedValue = struct(
-            accountId, accessToken, teamId, teamName, scope,
-            enterpriseId = null, isDeleted = true, status = "inactive"
+            accountId,
+            accessToken,
+            teamId,
+            teamName,
+            scope,
+            enterpriseId = null,
+            isDeleted = true,
+            status = "inactive",
         )
 
         assertEquals(expectedValue, transformedRecord.value())
@@ -256,6 +304,6 @@ class SlackIntegrationPayloadTransformerTest {
         ClassHelper.createInstance(
             MongoSourceConfig.OUTPUT_JSON_FORMATTER_CONFIG,
             "com.mongodb.kafka.connect.source.json.formatter.DefaultJson",
-            JsonWriterSettingsProvider::class.java
+            JsonWriterSettingsProvider::class.java,
         ).jsonWriterSettings
 }
