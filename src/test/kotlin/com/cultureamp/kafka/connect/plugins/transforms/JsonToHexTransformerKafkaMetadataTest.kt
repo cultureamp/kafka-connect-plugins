@@ -37,7 +37,7 @@ class JsonToHexTransformerKafkaMetadataTest {
             testJson,
             156L,
             1713922160000L,
-            TimestampType.CREATE_TIME
+            TimestampType.CREATE_TIME,
         )
 
         val result = transformer.apply(record)
@@ -102,7 +102,7 @@ class JsonToHexTransformerKafkaMetadataTest {
             otelData,
             999L,
             System.currentTimeMillis(),
-            TimestampType.CREATE_TIME
+            TimestampType.CREATE_TIME,
         )
 
         val result = transformer.apply(record)

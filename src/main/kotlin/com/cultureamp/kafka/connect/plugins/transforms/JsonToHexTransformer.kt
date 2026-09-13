@@ -54,7 +54,7 @@ class JsonToHexTransformer<R : ConnectRecord<R>> : Transformation<R> {
                 ConfigDef.Type.STRING,
                 HEX_FIELD_NAME_DEFAULT,
                 ConfigDef.Importance.MEDIUM,
-                "Name of the field to store the hex-encoded JSON payload"
+                "Name of the field to store the hex-encoded JSON payload",
             )
     }
 
@@ -80,10 +80,12 @@ class JsonToHexTransformer<R : ConnectRecord<R>> : Transformation<R> {
 
     private fun convertFieldSchema(orig: Schema, optional: Boolean, defaultValue: Any?): Schema {
         val builder = SchemaUtil.copySchemaBasics(orig)
-        if (optional)
+        if (optional) {
             builder.optional()
-        if (defaultValue != null)
+        }
+        if (defaultValue != null) {
             builder.defaultValue(defaultValue)
+        }
         return builder.build()
     }
 
@@ -123,7 +125,7 @@ class JsonToHexTransformer<R : ConnectRecord<R>> : Transformation<R> {
             record.key(),
             newSchema,
             newValue,
-            record.timestamp()
+            record.timestamp(),
         ) as R
     }
 }
