@@ -10,7 +10,7 @@ plugins {
     id("org.jetbrains.kotlin.jvm") version "1.9.25"
 
     // Add ktlint
-    id("org.jmailen.kotlinter") version "3.6.0"
+    id("org.jmailen.kotlinter") version "3.16.0"
 
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
@@ -23,6 +23,19 @@ version = "0.13.0"
 repositories {
     // Use Maven Central for resolving dependencies.
     mavenCentral()
+}
+
+// mongo-kafka-connect 1.16.0 brings kotlin-stdlib/kotlin-reflect 2.1.x as transitive deps.
+// The Kotlin JVM plugin is pinned to 1.9.25 (kotlinter 3.16.0 requires Kotlin 1.x), so we
+// must force all Kotlin artifacts back to 1.9.25 to avoid a metadata-version mismatch at
+// compile time ("binary version 2.1.0, expected 1.9.0").
+configurations.all {
+    resolutionStrategy.force(
+        "org.jetbrains.kotlin:kotlin-stdlib:1.9.25",
+        "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.25",
+        "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.25",
+        "org.jetbrains.kotlin:kotlin-reflect:1.9.25",
+    )
 }
 
 dependencies {
@@ -38,7 +51,7 @@ dependencies {
     implementation("org.apache.kafka:connect-api:$kafkaVersion")
     implementation("org.apache.kafka:connect-json:$kafkaVersion")
     implementation("org.apache.kafka:connect-transforms:$kafkaVersion")
-    implementation("org.apache.avro:avro:1.11.3")
+    implementation("org.apache.avro:avro:1.12.2")
 
     // Use the Kotlin test library.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
@@ -53,7 +66,7 @@ dependencies {
     // Previous 2.15.2 version was flagged as vulnerability:
     // CVE-2023-35116 - developers claim it's a bogus alert https://github.com/FasterXML/jackson-databind/issues/3972
     // but I guess won't hurt to upgrade it + will resolve dependency check failure
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.16.0")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.22.2")
 
     // Upgraded version of Snappy Java to patch:
     // CVE-2023-34454 - https://github.com/advisories/GHSA-fjpj-2g6w-x25r
@@ -64,7 +77,7 @@ dependencies {
     // CVE-2023-42503
     implementation("org.apache.commons:commons-compress:1.28.0")
 
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.3")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.22.2")
     implementation("org.mongodb.kafka:mongo-kafka-connect:1.16.0")
     implementation("org.mongodb:bson:4.11.5")
 
