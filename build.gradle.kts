@@ -78,7 +78,7 @@ dependencies {
     implementation("org.apache.commons:commons-compress:1.28.0")
 
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.22.2")
-    implementation("org.mongodb.kafka:mongo-kafka-connect:1.16.0")
+    implementation("org.mongodb.kafka:mongo-kafka-connect:3.1.0")
     implementation("org.mongodb:bson:4.11.5")
 
     // log4j2, for PiiRedactionPolicy. compileOnly because the Connect worker classpath already
