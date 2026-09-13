@@ -31,10 +31,10 @@ repositories {
 // compile time ("binary version 2.1.0, expected 1.9.0").
 configurations.all {
     resolutionStrategy.force(
-        "org.jetbrains.kotlin:kotlin-stdlib:1.9.25",
-        "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.25",
-        "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.25",
-        "org.jetbrains.kotlin:kotlin-reflect:1.9.25",
+        "org.jetbrains.kotlin:kotlin-stdlib:2.4.20",
+        "org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.4.20",
+        "org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.4.20",
+        "org.jetbrains.kotlin:kotlin-reflect:2.4.20",
     )
 }
 
