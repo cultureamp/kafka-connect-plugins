@@ -19,8 +19,8 @@ class JsonToHexTransformerKafkaMetadataTest {
         transformer = JsonToHexTransformer()
         transformer.configure(
             mutableMapOf<String, Any>(
-                "hex.field.name" to "payload_hex"
-            )
+                "hex.field.name" to "payload_hex",
+            ),
         )
     }
 
@@ -71,8 +71,8 @@ class JsonToHexTransformerKafkaMetadataTest {
                 mapOf(
                     "resource" to mapOf(
                         "attributes" to listOf(
-                            mapOf("key" to "service.name", "value" to mapOf("stringValue" to "ai-coach-api"))
-                        )
+                            mapOf("key" to "service.name", "value" to mapOf("stringValue" to "ai-coach-api")),
+                        ),
                     ),
                     "scopeSpans" to listOf(
                         mapOf(
@@ -83,14 +83,14 @@ class JsonToHexTransformerKafkaMetadataTest {
                                     "spanId" to "23ae78014c176545",
                                     "name" to "search_knowledge_base",
                                     "attributes" to listOf(
-                                        mapOf("key" to "session_id", "value" to mapOf("stringValue" to "test-session"))
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            )
+                                        mapOf("key" to "session_id", "value" to mapOf("stringValue" to "test-session")),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
         )
 
         val record = SinkRecord(
