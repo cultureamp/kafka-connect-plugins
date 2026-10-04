@@ -51,7 +51,10 @@ dependencies {
     implementation("org.apache.kafka:connect-api:$kafkaVersion")
     implementation("org.apache.kafka:connect-json:$kafkaVersion")
     implementation("org.apache.kafka:connect-transforms:$kafkaVersion")
-    implementation("org.apache.avro:avro:1.12.2")
+    // Held on 1.11.x: Avro 1.12 removed Schema.Parser.setValidate(boolean), which
+    // mongo-kafka-connect (built against avro 1.9.x) still calls from AvroSchema.fromJson,
+    // causing NoSuchMethodError at runtime. Only bump to 1.12+ once mongo-kafka-connect supports it.
+    implementation("org.apache.avro:avro:1.11.5")
 
     // Use the Kotlin test library.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
@@ -60,13 +63,13 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter:6.1.3")
 
     // CVE-2023-6378 https://logback.qos.ch/news.html#1.3.12
-    implementation("ch.qos.logback:logback-classic:1.6.3")
-    implementation("ch.qos.logback:logback-core:1.6.3")
+    implementation("ch.qos.logback:logback-classic:1.6.4")
+    implementation("ch.qos.logback:logback-core:1.6.4")
 
     // Previous 2.15.2 version was flagged as vulnerability:
     // CVE-2023-35116 - developers claim it's a bogus alert https://github.com/FasterXML/jackson-databind/issues/3972
     // but I guess won't hurt to upgrade it + will resolve dependency check failure
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.22.2")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.22.3")
 
     // Upgraded version of Snappy Java to patch:
     // CVE-2023-34454 - https://github.com/advisories/GHSA-fjpj-2g6w-x25r
@@ -77,7 +80,7 @@ dependencies {
     // CVE-2023-42503
     implementation("org.apache.commons:commons-compress:1.28.0")
 
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.22.2")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.22.3")
     implementation("org.mongodb.kafka:mongo-kafka-connect:1.16.0")
     implementation("org.mongodb:bson:4.11.5")
 
