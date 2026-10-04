@@ -34,7 +34,7 @@ class SlackIntegrationPayloadTransformerTest {
                 "test",
                 valueAndSchema.schema(),
                 valueAndSchema.value(),
-            )
+            ),
         )
 
         val expectedValue = struct(
@@ -63,7 +63,7 @@ class SlackIntegrationPayloadTransformerTest {
                 "test",
                 valueAndSchema.schema(),
                 valueAndSchema.value(),
-            )
+            ),
         )
 
         val expectedValue = struct(
@@ -92,7 +92,7 @@ class SlackIntegrationPayloadTransformerTest {
                 "test",
                 valueAndSchema.schema(),
                 valueAndSchema.value(),
-            )
+            ),
         )
 
         val expectedValue = struct(
@@ -121,7 +121,7 @@ class SlackIntegrationPayloadTransformerTest {
                 "test",
                 valueAndSchema.schema(),
                 valueAndSchema.value(),
-            )
+            ),
         )
 
         val expectedValue = struct(
@@ -150,7 +150,7 @@ class SlackIntegrationPayloadTransformerTest {
                 "test",
                 valueAndSchema.schema(),
                 valueAndSchema.value(),
-            )
+            ),
         )
 
         val expectedValue = struct(
@@ -179,7 +179,7 @@ class SlackIntegrationPayloadTransformerTest {
                 "test",
                 valueAndSchema.schema(),
                 valueAndSchema.value(),
-            )
+            ),
         )
 
         val expectedValue = struct(
@@ -208,7 +208,7 @@ class SlackIntegrationPayloadTransformerTest {
                 "test",
                 valueAndSchema.schema(),
                 valueAndSchema.value(),
-            )
+            ),
         )
 
         val expectedValue = struct(
@@ -237,7 +237,7 @@ class SlackIntegrationPayloadTransformerTest {
                 "test",
                 valueAndSchema.schema(),
                 valueAndSchema.value(),
-            )
+            ),
         )
 
         val expectedValue = struct(
