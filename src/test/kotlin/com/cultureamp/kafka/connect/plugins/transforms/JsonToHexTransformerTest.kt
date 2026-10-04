@@ -36,7 +36,7 @@ class JsonToHexTransformerTest {
             jsonString,
             0L,
             System.currentTimeMillis(),
-            TimestampType.CREATE_TIME
+            TimestampType.CREATE_TIME,
         )
 
         val result = transformer.apply(record)
@@ -57,13 +57,13 @@ class JsonToHexTransformerTest {
                 "details" to mapOf(
                     "age" to 30,
                     "city" to "New York",
-                    "preferences" to listOf("coding", "reading")
-                )
+                    "preferences" to listOf("coding", "reading"),
+                ),
             ),
             "metadata" to mapOf(
                 "timestamp" to "2023-01-01T00:00:00Z",
-                "version" to 1
-            )
+                "version" to 1,
+            ),
         )
 
         val record = SinkRecord(
@@ -75,7 +75,7 @@ class JsonToHexTransformerTest {
             nestedJson,
             0L,
             System.currentTimeMillis(),
-            TimestampType.CREATE_TIME
+            TimestampType.CREATE_TIME,
         )
 
         val result = transformer.apply(record)
@@ -110,7 +110,7 @@ class JsonToHexTransformerTest {
             emptyJson,
             0L,
             System.currentTimeMillis(),
-            TimestampType.CREATE_TIME
+            TimestampType.CREATE_TIME,
         )
 
         val result = transformer.apply(record)
@@ -122,7 +122,7 @@ class JsonToHexTransformerTest {
     fun `should handle JSON array`() {
         val jsonArray = listOf(
             mapOf("id" to 1, "name" to "Item 1"),
-            mapOf("id" to 2, "name" to "Item 2")
+            mapOf("id" to 2, "name" to "Item 2"),
         )
 
         val record = SinkRecord(
@@ -134,7 +134,7 @@ class JsonToHexTransformerTest {
             jsonArray,
             0L,
             System.currentTimeMillis(),
-            TimestampType.CREATE_TIME
+            TimestampType.CREATE_TIME,
         )
 
         val result = transformer.apply(record)
@@ -156,9 +156,9 @@ class JsonToHexTransformerTest {
         largeData["nested"] = mapOf(
             "level1" to mapOf(
                 "level2" to mapOf(
-                    "level3" to "deep nested value"
-                )
-            )
+                    "level3" to "deep nested value",
+                ),
+            ),
         )
 
         val record = SinkRecord(
@@ -170,7 +170,7 @@ class JsonToHexTransformerTest {
             largeData,
             0L,
             System.currentTimeMillis(),
-            TimestampType.CREATE_TIME
+            TimestampType.CREATE_TIME,
         )
 
         val result = transformer.apply(record)
@@ -200,7 +200,7 @@ class JsonToHexTransformerTest {
             jsonString,
             0L,
             System.currentTimeMillis(),
-            TimestampType.CREATE_TIME
+            TimestampType.CREATE_TIME,
         )
 
         val result = customTransformer.apply(record)
@@ -214,7 +214,7 @@ class JsonToHexTransformerTest {
             "emoji" to "🚀",
             "special" to "Special chars: àáâãäåæçèéêë",
             "quotes" to "Text with \"quotes\" and 'apostrophes'",
-            "newlines" to "Line 1\nLine 2\tTabbed"
+            "newlines" to "Line 1\nLine 2\tTabbed",
         )
 
         val record = SinkRecord(
@@ -226,7 +226,7 @@ class JsonToHexTransformerTest {
             jsonWithSpecialChars,
             0L,
             System.currentTimeMillis(),
-            TimestampType.CREATE_TIME
+            TimestampType.CREATE_TIME,
         )
 
         val result = transformer.apply(record)
