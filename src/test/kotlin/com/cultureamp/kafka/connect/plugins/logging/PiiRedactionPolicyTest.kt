@@ -37,7 +37,13 @@ import kotlin.test.assertTrue
 class PiiRedactionPolicyTest {
 
     private val piiTokens = listOf(
-        "Sarah", "resigning", "jo.tan", "example.com", "VALUES (", "142000", "emp-9931",
+        "Sarah",
+        "resigning",
+        "jo.tan",
+        "example.com",
+        "VALUES (",
+        "142000",
+        "emp-9931",
     )
 
     /** Default argument mirrors the shipped default: no untrusted loggers, SQLException gate only. */

@@ -39,7 +39,6 @@ class RedShiftComplexDataTypeTransformerTest {
     private lateinit var transformer: RedShiftComplexDataTypeTransformer<SinkRecord>
 
     private fun hasNoComplexTypes(obj: SinkRecord): Boolean {
-
         var hasNoComplexTypes = true
         for (field in obj.valueSchema().fields()) {
             if (field.schema().type() == Schema.Type.ARRAY || field.schema().type() == Schema.Type.MAP || field.schema().type() == Schema.Type.STRUCT) {
@@ -57,7 +56,6 @@ class RedShiftComplexDataTypeTransformerTest {
 
     @Test
     fun `can transform ECST Employee data that has arrays into string fields`() {
-
         val avroRecord = payload("com/cultureamp/employee-data.employees-v1.json")
         val sinkRecord = SinkRecord(
             "employee data ecst test",
@@ -76,7 +74,7 @@ class RedShiftComplexDataTypeTransformerTest {
         val expectedValue = struct(
             id, account_id, employee_id, event_created_at, body_source, body_employee_id, body_email, body_name, body_preferred_name, body_locale, body_observer, body_gdpr_erasure_request_id, body_test_map, body_test_map_1, body_test_array_of_structs, body_manager_assignment_manager_id, body_manager_assignment_demographic_id, body_erased, body_created_at, body_updated_at, body_deleted_at, metadata_correlation_id, metadata_causation_id, metadata_executor_id, metadata_service, test_array_of_structs, test_string_array, test_array_of_arrays, test_map,
             topic_key = "",
-            tombstone = false
+            tombstone = false,
         ).put("_kafka_metadata_partition", "1").put("_kafka_metadata_offset", "156").put("_kafka_metadata_timestamp", "null")
 
         assertEquals(expectedValue, transformedRecord.value())
@@ -85,7 +83,6 @@ class RedShiftComplexDataTypeTransformerTest {
 
     @Test
     fun `can transform ECST Employee data with null body`() {
-
         val avroRecord = payload("com/cultureamp/employee-data.employees-v2.json")
         val sinkRecord = SinkRecord(
             "employee data ecst test",
@@ -104,7 +101,7 @@ class RedShiftComplexDataTypeTransformerTest {
         val expectedValue = nullBodyStruct(
             id, account_id, employee_id, event_created_at, metadata_correlation_id, metadata_causation_id, metadata_executor_id, "Default-Service", test_array_of_structs, test_string_array, test_array_of_arrays, test_map,
             topic_key = "",
-            tombstone = true
+            tombstone = true,
         ).put("_kafka_metadata_partition", "1").put("_kafka_metadata_offset", "156").put("_kafka_metadata_timestamp", "null")
 
         assertEquals(expectedValue, transformedRecord.value())
@@ -113,7 +110,6 @@ class RedShiftComplexDataTypeTransformerTest {
 
     @Test
     fun `can transform ECST Employee data that has key as field`() {
-
         val avroRecord = payload("com/cultureamp/employee-data.employees-v1.json")
         val sinkRecord = SinkRecord(
             "employee data ecst test",
@@ -134,7 +130,7 @@ class RedShiftComplexDataTypeTransformerTest {
         val expectedValue = struct(
             id, account_id, employee_id, event_created_at, body_source, body_employee_id, body_email, body_name, body_preferred_name, body_locale, body_observer, body_gdpr_erasure_request_id, body_test_map, body_test_map_1, body_test_array_of_structs, body_manager_assignment_manager_id, body_manager_assignment_demographic_id, body_erased, body_created_at, body_updated_at, body_deleted_at, metadata_correlation_id, metadata_causation_id, metadata_executor_id, metadata_service, test_array_of_structs, test_string_array, test_array_of_arrays, test_map,
             topic_key = "hellp",
-            tombstone = false
+            tombstone = false,
         ).put("_kafka_metadata_partition", "1").put("_kafka_metadata_offset", "156").put("_kafka_metadata_timestamp", "1713922160")
 
         assertEquals(expectedValue, transformedRecord.value())
@@ -143,7 +139,6 @@ class RedShiftComplexDataTypeTransformerTest {
 
     @Test
     fun `can transform ECST Employee data with tombstone message and non-null key`() {
-
         val avroRecord = payload("com/cultureamp/employee-data.employees-v1.json")
         val sinkRecord = SinkRecord(
             "employee data ecst test",
@@ -164,7 +159,6 @@ class RedShiftComplexDataTypeTransformerTest {
 
     @Test
     fun `can transform ECST Employee data with tombstone message and null key`() {
-
         val avroRecord = payload("com/cultureamp/employee-data.employees-v1.json")
         val sinkRecord = SinkRecord(
             "employee data ecst test",
@@ -273,7 +267,7 @@ class RedShiftComplexDataTypeTransformerTest {
         test_array_of_arrays: String,
         test_map: String,
         topic_key: String?,
-        tombstone: Boolean
+        tombstone: Boolean,
     ): Struct {
         val returnStruct = Struct(getExpectedSchema())
         returnStruct.put("id", id)
@@ -306,8 +300,9 @@ class RedShiftComplexDataTypeTransformerTest {
             .put("test_array_of_arrays", test_array_of_arrays)
             .put("test_map", test_map)
             .put("tombstone", tombstone)
-        if (topic_key != "")
+        if (topic_key != "") {
             returnStruct.put("topic_key", topic_key)
+        }
         return returnStruct
     }
 
@@ -325,7 +320,7 @@ class RedShiftComplexDataTypeTransformerTest {
         test_array_of_arrays: String,
         test_map: String,
         topic_key: String?,
-        tombstone: Boolean
+        tombstone: Boolean,
     ): Struct {
         val returnStruct = Struct(getExpectedSchema())
         returnStruct.put("id", id)
@@ -341,8 +336,9 @@ class RedShiftComplexDataTypeTransformerTest {
             .put("test_array_of_arrays", test_array_of_arrays)
             .put("test_map", test_map)
             .put("tombstone", tombstone)
-        if (topic_key != "")
+        if (topic_key != "") {
             returnStruct.put("topic_key", topic_key)
+        }
         return returnStruct
     }
 
@@ -355,10 +351,12 @@ class RedShiftComplexDataTypeTransformerTest {
 
     private fun convertFieldSchema(orig: Schema, optional: Boolean, defaultFromParent: Any?): Schema {
         val builder = SchemaUtil.copySchemaBasics(orig)
-        if (optional)
+        if (optional) {
             builder.optional()
-        if (defaultFromParent != null)
+        }
+        if (defaultFromParent != null) {
             builder.defaultValue(defaultFromParent)
+        }
         return builder.build()
     }
 
@@ -366,12 +364,13 @@ class RedShiftComplexDataTypeTransformerTest {
         val expectedSchema = AvroSchema.fromJson(fileContent("com/cultureamp/employee-data.employees-v1-target-schema.avsc"))
         val builder = SchemaUtil.copySchemaBasics(expectedSchema)
         for (field in expectedSchema.fields()) {
-            if (field.name() == "body_observer")
+            if (field.name() == "body_observer") {
                 builder.field("body_observer", convertFieldSchema(SchemaBuilder.bool().build(), true, true))
-            else if (field.name() == "metadata_service")
+            } else if (field.name() == "metadata_service") {
                 builder.field("metadata_service", convertFieldSchema(SchemaBuilder.string().build(), true, "Default-Service"))
-            else
+            } else {
                 builder.field(field.name(), field.schema())
+            }
         }
         return builder.build()
     }
@@ -380,6 +379,6 @@ class RedShiftComplexDataTypeTransformerTest {
         ClassHelper.createInstance(
             MongoSourceConfig.OUTPUT_JSON_FORMATTER_CONFIG,
             "com.mongodb.kafka.connect.source.json.formatter.DefaultJson",
-            JsonWriterSettingsProvider::class.java
+            JsonWriterSettingsProvider::class.java,
         ).jsonWriterSettings
 }
