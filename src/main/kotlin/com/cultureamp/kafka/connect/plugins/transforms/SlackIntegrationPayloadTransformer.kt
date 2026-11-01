@@ -35,7 +35,7 @@ class SlackIntegrationPayloadTransformer<R : ConnectRecord<R>> : Transformation<
                 record.key(),
                 targetSchema,
                 targetPayload,
-                record.timestamp()
+                record.timestamp(),
             )
         } catch (e: Exception) {
             logger.error("Exception: ", e)
@@ -74,7 +74,7 @@ class SlackIntegrationPayloadTransformer<R : ConnectRecord<R>> : Transformation<
                 teamName = oauthResponseData["team_name"] as String,
                 accessToken = bot["bot_access_token"] as String,
                 scope = oauthResponseData["scope"] as String,
-                enterpriseId = oauthResponseData["enterprise_id"] as String?
+                enterpriseId = oauthResponseData["enterprise_id"] as String?,
             )
         } catch (e: Exception) {
             // Slack Integration OAuth V2 Payload
@@ -85,7 +85,7 @@ class SlackIntegrationPayloadTransformer<R : ConnectRecord<R>> : Transformation<
                 teamName = team["name"] as String,
                 accessToken = oauthResponseData["access_token"] as String,
                 scope = oauthResponseData["scope"] as String,
-                enterpriseId = enterpriseId(oauthResponseData)
+                enterpriseId = enterpriseId(oauthResponseData),
             )
         }
     }
