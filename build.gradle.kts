@@ -54,7 +54,7 @@ dependencies {
     // Held on 1.11.x: Avro 1.12 removed Schema.Parser.setValidate(boolean), which
     // mongo-kafka-connect (built against avro 1.9.x) still calls from AvroSchema.fromJson,
     // causing NoSuchMethodError at runtime. Only bump to 1.12+ once mongo-kafka-connect supports it.
-    implementation("org.apache.avro:avro:1.11.5")
+    implementation("org.apache.avro:avro:1.12.2")
 
     // Use the Kotlin test library.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
