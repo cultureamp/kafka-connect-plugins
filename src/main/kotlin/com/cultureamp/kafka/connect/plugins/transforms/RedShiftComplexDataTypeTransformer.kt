@@ -62,7 +62,7 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
             record.key(),
             schema,
             value,
-            record.timestamp()
+            record.timestamp(),
         )
     }
 
@@ -78,10 +78,12 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
         // Note that we don't use the schema translation cache here. It might save us a bit of effort, but we really
         // only care about caching top-level schema translations.
         val builder = SchemaUtil.copySchemaBasics(orig)
-        if (optional)
+        if (optional) {
             builder.optional()
-        if (defaultFromParent != null)
+        }
+        if (defaultFromParent != null) {
             builder.defaultValue(defaultFromParent)
+        }
         return builder.build()
     }
 
@@ -112,7 +114,7 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
                 Schema.Type.STRUCT -> buildUpdatedSchema(field.schema(), fieldName, newSchema, optional)
                 else -> throw DataException(
                     "Flatten transformation does not support " + field.schema().type() +
-                        " for record with schemas (for field " + fieldName + ")."
+                        " for record with schemas (for field " + fieldName + ").",
                 )
             }
         }
@@ -122,17 +124,19 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
         var realValue = value
         var realSchema = schema
         if (value == null && schema.type() == Schema.Type.ARRAY) {
-            if (schema.defaultValue() != null)
+            if (schema.defaultValue() != null) {
                 realValue = schema.defaultValue()
-            else
+            } else {
                 realValue = "[]"
+            }
             realSchema = SchemaBuilder.string().build()
         }
         if (value == null && schema.type() == Schema.Type.MAP) {
-            if (schema.defaultValue() != null)
+            if (schema.defaultValue() != null) {
                 realValue = schema.defaultValue()
-            else
+            } else {
                 realValue = "{}"
+            }
             realSchema = SchemaBuilder.string().build()
         }
         val converted = jsonConverter.fromConnectData("", realSchema, realValue)
@@ -170,7 +174,7 @@ class RedShiftComplexDataTypeTransformer<R : ConnectRecord<R>> : Transformation<
                 Schema.Type.STRUCT -> buildWithSchema(record.getStruct(field.name()), fieldName, newRecord)
                 else -> throw DataException(
                     "Flatten transformation does not support " + field.schema().type() +
-                        " for record with schemas (for field " + fieldName + ")."
+                        " for record with schemas (for field " + fieldName + ").",
                 )
             }
         }

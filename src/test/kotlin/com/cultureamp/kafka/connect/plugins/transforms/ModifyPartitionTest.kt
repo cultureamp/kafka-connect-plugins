@@ -39,7 +39,7 @@ class ModifyPartitionTest {
             null,
             "",
             789L,
-            headers()
+            headers(),
         )
 
         assertFailsWith<ConnectException> {
@@ -60,7 +60,7 @@ class ModifyPartitionTest {
             null,
             "",
             789L,
-            headers("account_id" to "04a96f30-3dfa-11ec-9bbc-0242ac130002") // expected = 7 (manually calculated))
+            headers("account_id" to "04a96f30-3dfa-11ec-9bbc-0242ac130002"), // expected = 7 (manually calculated))
         )
 
         val transformedRecord: SourceRecord = partitionSmt.apply(record)
@@ -80,7 +80,7 @@ class ModifyPartitionTest {
             null,
             "",
             789L,
-            headers("account_id" to "04a96f30-3dfa-11ec-9bbc-0242ac130002") // expected = 7 (manually calculated))
+            headers("account_id" to "04a96f30-3dfa-11ec-9bbc-0242ac130002"), // expected = 7 (manually calculated))
         )
 
         assertFailsWith<ConnectException> {
